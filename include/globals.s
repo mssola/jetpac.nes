@@ -29,6 +29,8 @@
     ;; | Bit | Short name | Meaning when set                                            |
     ;; |-----+------------+-------------------------------------------------------------|
     ;; |   7 | render     | Game logic is over, block main code until NMI code is over. |
-    ;; | 6-0 | -          | Unused                                                      |
+    ;; |   6 | ppu        | PPU registers have to be touched                            |
+    ;; | 5-2 | -          | Unused                                                      |
+    ;; | 1-0 | game       | 0: title; 1: game; 2: game over, 3: game over (coin)        |
     zp_flags = $20
 .endscope

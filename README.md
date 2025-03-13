@@ -5,17 +5,9 @@ page](https://github.com/mssola/jetpac.nes/releases).
 
 ## The game
 
-The game follows the original as much as possible. Some things had to be adapted
-because of hardware differences. For example, the colors are a bit different
-because the NES offers a fixed set of them and that's it. Other than small
-differences I'm sure that the feel from the game might be a bit different too.
-Some of it might be attributed to, again, the nature of the NES, but some other
-bit of this can be attributed directly to me. Hence, if you know how to improve
-the game (by being closer to the original), [do tell me](./CONTRIBUTING.md)!
-
-Other than that, the game is a shooter in which you have to re-assemble your
-ship's parts and fill it with fuel, all while killing enemies that keep popping
-up. The controls are as follows:
+The game is a shooter in which you have to re-assemble your ship's parts and
+fill it with fuel, all while killing enemies that keep popping up. The controls
+are as follows:
 
 | Button                                         | Action                |
 |:----------------------------------------------:|:----------------------|

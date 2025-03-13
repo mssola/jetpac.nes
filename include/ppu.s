@@ -5,4 +5,8 @@
     SCROLL  = $2005
     ADDRESS = $2006
     DATA    = $2007
+
+    ;; Shadow for the PPU::CONTROL value. Touch this value instead of accessing
+    ;; the PPU register directly.
+    zp_control = $80
 .endscope

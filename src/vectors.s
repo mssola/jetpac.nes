@@ -78,16 +78,43 @@
     tya
     pha
 
+    ;; Sprite DMA.
     lda #$00
     sta OAM::ADDRESS
     lda #$02
     sta OAM::DMA
 
+    ;; TODO: some actions here will depend on the status of the game...
+
+    ;; Decrease title timer.
+    lda Title::zp_title_timer
+    beq :+
+    dec Title::zp_title_timer
+:
+
+    ;; Should we update PPU registers?
+    bit Globals::zp_flags
+    bvc @scroll
+
+    ;; Zero out the `ppu` flag.
+    lda #%10111111
+    and Globals::zp_flags
+    sta Globals::zp_flags
+
+    bit PPU::STATUS
+
+    ;; Update the PPU control register with the shadowed value.
+    lda PPU::zp_control
+    sta PPU::CONTROL
+
+@scroll:
+    ;; Always reset the scroll just in case.
     bit PPU::STATUS
     lda #$00
     sta PPU::SCROLL
     sta PPU::SCROLL
 
+    ;; Unblock the main code.
     lda #%01111111
     and Globals::zp_flags
     sta Globals::zp_flags

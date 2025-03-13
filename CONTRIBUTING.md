@@ -35,3 +35,15 @@ In order to test your changes, I'd go this way:
 3. Run the ROM that was produced with an emulator of your choosing. Make sure
    that things run as expected.
 
+## Modifying assets
+
+I am using [NEXXT studio 3](https://frankengraphics.itch.io/nexxt) for managing
+the assets. This is why you will find a [sessions.nss](./assets/sessions.nss)
+file from which you will be able to load the same environment I have been using
+in order to manage my assets. All of that being said, whenever you are done
+modifying the assets, do the following:
+
+1. Save the session so it can be viewed on Git.
+2. Save the 8KB of pattern data from sets A+B and save them into
+   [./assets/jetpac.chr](./assets/jetpac.chr).
+3. Save both screens into `.nam` files, as you can see on [./assets](./assets).
