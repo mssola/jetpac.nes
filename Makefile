@@ -28,20 +28,30 @@ deps:
 	@which $(CC65) >/dev/null 2>/dev/null || (echo "ERROR: $(CC65) not found." && false)
 
 .PHONY: build
-build: build-full build-partial
+build: build-full build-partial build-pal
 
 .PHONY: build-full
 build-full:
 	$(Q) rm -f config/generated.s
-	$(Q) touch config/generated.s
+	$(Q) echo "HZ = 60" >> config/generated.s
 
-	$(E) "	CC	 jetpac (full)"
-	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o out/jetpac.nes
+	$(E) "	CC	 jetpac (full, NTSC)"
+	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (NTSC).nes"
 
 .PHONY: build-partial
 build-partial:
 	$(Q) rm -f config/generated.s
 	$(Q) echo "PARTIAL = 1"  >> config/generated.s
+	$(Q) echo "HZ = 60" >> config/generated.s
 
-	$(E) "	CC	 jetpac (partial)"
-	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -Wa -DPARTIAL=1 -o out/partial.nes
+	$(E) "	CC	 jetpac (partial, NTSC)"
+	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (DEV).nes"
+
+.PHONY: build-pal
+build-pal:
+	$(Q) rm -f config/generated.s
+	$(Q) echo "PAL = 1"  >> config/generated.s
+	$(Q) echo "HZ = 50" >> config/generated.s
+
+	$(E) "	CC	 jetpac (PAL)"
+	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (PAL).nes"

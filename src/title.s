@@ -8,7 +8,7 @@
     SPRITE_X_POSITION  = $40
 
     ;; The title has a timer as a delay between joypad presses from the player.
-    TIMER_INIT_VALUE = 20
+    TIMER_INIT_VALUE = (HZ / 3)
     zp_title_timer = $30
 
     ;; Initialize all the elements for the title screen.
