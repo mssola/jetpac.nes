@@ -38,6 +38,7 @@
 .include "../include/globals.s"
 
 .include "assets.s"
+.include "player.s"
 .include "driver.s"
 .include "title.s"
 .include "vectors.s"
