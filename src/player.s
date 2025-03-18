@@ -25,19 +25,25 @@
     ;;  - Translating positions into screen coordinates it's a matter of simply
     ;;    rolling the low nibble of the high byte into the low byte.
 
-    INIT_Y_POSITION_LO = $80
-    INIT_Y_POSITION_HI = $0C
+    ;; The height of the player, which is 24 pixels long as it's made up of 3
+    ;; sprites.
+    PLAYER_HEIGHT = $18
+
+    ;; The initial position is the ground minus the height of the sprite (as the
+    ;; Y accounts for the top left pixel). For the high byte we only want to
+    ;; high nibble put into its low nibble, and for the low byte we shift the
+    ;; low nibble into a high one and leave subpixels to 0.
+    INIT_Y_POSITION_LO = ((Background::GROUND_Y_COORD - PLAYER_HEIGHT) & $0F) << 4
+    INIT_Y_POSITION_HI = (Background::GROUND_Y_COORD - PLAYER_HEIGHT) >> 4
     INIT_Y_VELOCITY    = $08
 
+    ;; The initial position on the X axis is more or less at the center.
     INIT_X_POSITION_LO = $00
-    INIT_X_POSITION_HI = $04
+    INIT_X_POSITION_HI = $07
 
     THROTTLE  = $D8
     BLAST_OFF = $F8
     GRAVITY   = $28
-
-    UPPER_LIMIT  = 10
-    GROUND_LIMIT = 200
 
     zp_screen_y          = $40
     zp_position_y        = $41  ; NOTE: 16-bit.
@@ -115,7 +121,7 @@
         ;; coordinates, eject out from boundaries and platforms, and update the
         ;; sprite with the new state.
         jsr position_to_screen
-        jsr bound_check
+        jsr background_check
         JAL update_sprite
     .endproc
 
@@ -236,42 +242,103 @@
 
     ;; Check on whether the player is out of bounds in any way and provide an
     ;; ejection logic for each situation.
-    .proc bound_check
-        ;; Are we at the top?
-        ;; TODO: actually buggy, but nevermind for now
+    .proc background_check
+        ;; If we are going down, the player's height should be added to the
+        ;; coordinate, as we are checking for the bottom.
         lda zp_screen_y
-        cmp #UPPER_LIMIT
-        beq @too_high_icarus
-        bcs @check_ground
-    @too_high_icarus:
-        lda #0
-        sta zp_velocity_y
-        lda #UPPER_LIMIT
-        sta zp_screen_y
-        rts
+        ldx zp_velocity_y
+        bmi :+
+        clc
+        adc #PLAYER_HEIGHT
+    :
+        ;; And convert raw screen coordinates into a tile coordinate.
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_tmp0
 
-        ;; Nope, are we at the ground?
-    @check_ground:
-        cmp #(GROUND_LIMIT - 24)
-        bcc @above_ground
+        ;; We do the same for the X axis.
+        lda zp_screen_x
+        tay
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_tmp1
+        tya
+        clc
+        adc #16
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_tmp2
 
-        ;; We appear to be either at the ground or below it (e.g. we are
-        ;; standing still but initial gravity is pulling us down). In this case,
-        ;; just reset the Y velocity and the Y position.
-        lda #0
-        sta zp_velocity_y
-        lda #(GROUND_LIMIT - 24)
+        ;; Let's first check if there's any match on the vertical axis.
+        ldx #0
+    @vertical_check:
+        lda Background::platforms, x
+
+        ;; End of the list, no matches: begone!
+        cmp #$FF
+        beq @end
+
+        ;; Prepare for either horizontal check (which require one 'inx') or the
+        ;; next iteration (which require three 'inx').
+        inx
+
+        ;; The first byte is the vertical tile coordinate. If that doesn't
+        ;; match, go for the next one.
+        cmp Globals::zp_tmp0
+        beq @horizontal_check
+        inx
+        inx
+        jmp @vertical_check
+
+    @horizontal_check:
+        ;; Save up this value just in case we are actually grounded.
+        sta Globals::zp_tmp3
+
+        ;; Check that the right corner of the player is to the right of the left
+        ;; edge of the platform.
+        lda Background::platforms, x
+        cmp Globals::zp_tmp2
+        bcs @end
+
+        ;; And now check that the left corner of the player is to the left of
+        ;; the right edge of the platform.
+        inx
+        lda Background::platforms, x
+        cmp Globals::zp_tmp1
+        bcc @end
+
+        ;; Hey, we have a collision! Are we grounded or fighting with a ceiling?
+        ldy zp_velocity_y
+        bmi @ceiling
+
+        ;; Translate the stored Y tile index into coordinates and account for
+        ;; the player's height. That's the final screen position.
+        lda Globals::zp_tmp3
+        asl
+        asl
+        asl
+        sec
+        sbc #PLAYER_HEIGHT
         sta zp_screen_y
+
+        ;; Clearing out the subpixel value does the job.
         lda #$F0
         and zp_position_y
         sta zp_position_y
+
+        ;; And reset the velocity on the Y axis as we are grounded.
+        lda #0
+        sta zp_velocity_y
+
         rts
 
-        ;; Nope, let's check for the platforms.
-    @above_ground:
-        ;; TODO: notice how ground and top are just cases on the general
-        ;; "collision up/down". Next commits will merge these logics.
+    @ceiling:
+        ;; TODO
 
+    @end:
         rts
     .endproc
 
