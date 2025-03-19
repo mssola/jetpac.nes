@@ -19,6 +19,7 @@
     stx PPU::MASK
     stx APU::DMC
 
+    bit PPU::STATUS
 @vblankwait1:
     bit PPU::STATUS
     bpl @vblankwait1
