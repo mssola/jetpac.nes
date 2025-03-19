@@ -25,9 +25,9 @@
     ;;  - Translating positions into screen coordinates it's a matter of simply
     ;;    rolling the low nibble of the high byte into the low byte.
 
-    ;; The height of the player, which is 24 pixels long as it's made up of 3
-    ;; sprites.
+    ;; The height and width of the player.
     PLAYER_HEIGHT = $18
+    PLAYER_WIDTH  = $10
 
     ;; The initial position is the ground minus the height of the sprite (as the
     ;; Y accounts for the top left pixel). For the high byte we only want to
@@ -35,7 +35,6 @@
     ;; low nibble into a high one and leave subpixels to 0.
     INIT_Y_POSITION_LO = ((Background::GROUND_Y_COORD - PLAYER_HEIGHT) & $0F) << 4
     INIT_Y_POSITION_HI = (Background::GROUND_Y_COORD - PLAYER_HEIGHT) >> 4
-    INIT_Y_VELOCITY    = $08
 
     ;; The initial position on the X axis is more or less at the center.
     INIT_X_POSITION_LO = $00
@@ -55,11 +54,26 @@
     zp_target_velocity_x = $48  ; TODO: needed?
     zp_velocity_x        = $49
 
+    ;; Flags that manage the state of the game.
+    ;;
+    ;; | Bit | Short name | Meaning when set                                         |
+    ;; |-----+------------+----------------------------------------------------------|
+    ;; |   7 | throttle   | Player is hitting the throttle                           |
+    ;; |   6 | heading    | heading right                                            |
+    ;; | 5-3 | -          | Unused                                                   |
+    ;; |   2 | update     | Sprite (animation or heading) must be updated            |
+    ;; | 1-0 | walk       | 0: still; 1: animation 1; 2: animation 2, 3: animation 3 |
+    zp_state = $50
+
     ;; Initialize the player's sprite. Note that for the sprite to look
     ;; correctly on screen you still need to call `Player::update` afterwards.
     .proc init
+        ;; Initial state.
+        lda #%01000100
+        sta zp_state
+
         ;; Reset velocity
-        lda #$00
+        lda #0
         sta zp_target_velocity_y
         sta zp_velocity_y
         sta zp_target_velocity_x
@@ -76,53 +90,19 @@
         lda #INIT_X_POSITION_HI
         sta zp_position_x + 1
 
-        ;;;
-        ;; TODO: this should really just go away
-
-        lda #$00
-        sta $201
-        lda #$00
-        sta $202
-
-        lda #$01
-        sta $205
-        lda #$00
-        sta $206
-
-        lda #$10
-        sta $209
-        lda #$00
-        sta $20A
-
-        lda #$11
-        sta $20D
-        lda #$00
-        sta $20E
-
-        lda #$20
-        sta $211
-        lda #$00
-        sta $212
-
-        lda #$21
-        sta $215
-        lda #$00
-        sta $216
-
         rts
     .endproc
 
     .proc update
         jsr update_vertical_position
-
-        ;; TODO: horizontal
+        jsr update_horizontal_position
 
         ;; At this point all positions are clear, transform them into screen
         ;; coordinates, eject out from boundaries and platforms, and update the
         ;; sprite with the new state.
         jsr position_to_screen
         jsr background_check
-        JAL update_sprite
+        JAL update_sprites
     .endproc
 
     ;; Updates the `zp_velocity_y` and the `zp_position_y` depending on whether
@@ -192,6 +172,40 @@
         sbc #0
         sta zp_position_y + 1
 
+        ;; Player is throttling.
+        lda #%10000100
+        ora zp_state
+        sta zp_state
+
+        rts
+    .endproc
+
+    .proc update_horizontal_position
+        ;;
+        ;; TODO
+        ;;
+
+        lda #Joypad::BUTTON_LEFT
+        and Joypad::zp_buttons1
+        beq @check_right
+
+        lda #%10111111
+        and zp_state
+        ora #%00000100
+        sta zp_state
+
+        jmp @end
+
+    @check_right:
+        lda #Joypad::BUTTON_RIGHT
+        and Joypad::zp_buttons1
+        beq @end
+
+        lda #%01000100
+        ora zp_state
+        sta zp_state
+
+    @end:
         rts
     .endproc
 
@@ -266,7 +280,7 @@
         sta Globals::zp_tmp1
         tya
         clc
-        adc #16
+        adc #PLAYER_WIDTH
         lsr
         lsr
         lsr
@@ -274,26 +288,26 @@
 
         ;; Let's first check if there's any match on the vertical axis.
         ldx #0
-    @vertical_check:
+    @row_check:
         lda Background::platforms, x
 
         ;; End of the list, no matches: begone!
         cmp #$FF
         beq @end
 
-        ;; Prepare for either horizontal check (which require one 'inx') or the
+        ;; Prepare for either row check (which require one 'inx') or the
         ;; next iteration (which require three 'inx').
         inx
 
         ;; The first byte is the vertical tile coordinate. If that doesn't
         ;; match, go for the next one.
         cmp Globals::zp_tmp0
-        beq @horizontal_check
+        beq @column_check
         inx
         inx
-        jmp @vertical_check
+        jmp @row_check
 
-    @horizontal_check:
+    @column_check:
         ;; Save up this value just in case we are actually grounded.
         sta Globals::zp_tmp3
 
@@ -329,9 +343,15 @@
         and zp_position_y
         sta zp_position_y
 
-        ;; And reset the velocity on the Y axis as we are grounded.
+        ;; Reset the velocity on the Y axis as we are grounded.
         lda #0
         sta zp_velocity_y
+
+        ;; Set the player's state to grounded and with the still animation.
+        lda #%01111100
+        and zp_state
+        ora #%00000100
+        sta zp_state
 
         rts
 
@@ -342,19 +362,88 @@
         rts
     .endproc
 
-    .proc update_sprite
-        ;; TODO:
-        ;;   - Update heading
-        ;;   - Update motion state
-        ;;   - Update tiles
+    .proc update_sprites
+        ;; It's just an update of coordinates or something more?
+        lda #%00000100
+        and zp_state
+        beq @update_coordinates
 
-        jsr update_sprite_coordinates
+        jsr update_player_tiles
+
+        ;; Clear out `update` flag.
+        lda zp_state
+        and #%11111011
+        sta zp_state
+
+    @update_coordinates:
+        JAL update_sprites_coordinates
+    .endproc
+
+    ;; Update the tiles used for the player's sprites. This includes which tile
+    ;; IDs to use on each slot, and also the attributes to be used, as the
+    ;; heading affects whether things are to be flipped horizontally or not.
+    .proc update_player_tiles
+        ;; Throttle or walking? In any case, on the `x` register we will put one
+        ;; of the tile IDs, and on the `y` register the other. This way the code
+        ;; dealing with heading can rely on these two registers.
+        bit zp_state
+        bmi @throttle
+        ;; TODO: walk animation
+        ldx #$21
+        ldy #$20
+        bne @heading
+    @throttle:
+        ldx #$23
+        ldy #$22
+
+        ;; It's a bit of a pain but there's no other way around it, update all
+        ;; tile IDs for the player. Note that the feet come from the `x` and `y`
+        ;; registers as handled previously.
+    @heading:
+        bit zp_state
+        bvs @right
+
+        lda #$01
+        sta $201
+        lda #$00
+        sta $205
+        lda #$11
+        sta $209
+        lda #$10
+        sta $20D
+        stx $211
+        sty $215
+
+        ldx #%01000000
+        jmp @set_attributes
+    @right:
+        lda #$00
+        sta $201
+        lda #$01
+        sta $205
+        lda #$10
+        sta $209
+        lda #$11
+        sta $20D
+        stx $215
+        sty $211
+
+        ldx #$00
+
+        ;; The `x` register contains the tile attributes.
+    @set_attributes:
+        stx $202
+        stx $206
+        stx $20A
+        stx $20E
+        stx $212
+        stx $216
 
         rts
     .endproc
 
     ;; Update the coordinate for the six sprites that make up the player.
-    .proc update_sprite_coordinates
+    .proc update_sprites_coordinates
         ;; Y axis.
         lda zp_screen_y
         sta $0200

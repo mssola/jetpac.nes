@@ -69,15 +69,15 @@
         sta $200
         jmp @set_timer_and_end
 
+    @down:
+        lda #SPRITE_Y_POSITION1
+        sta $200
+
     @check_start:
         lda #Joypad::BUTTON_START
         and Joypad::zp_buttons1
         beq @end
         JAL start
-
-    @down:
-        lda #SPRITE_Y_POSITION1
-        sta $200
 
     @set_timer_and_end:
         lda #TIMER_INIT_VALUE
