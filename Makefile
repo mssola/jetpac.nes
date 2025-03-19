@@ -35,7 +35,7 @@ build-full:
 	$(Q) rm -f config/generated.s
 	$(Q) echo "HZ = 60" >> config/generated.s
 
-	$(E) "	CC	 jetpac (full, NTSC)"
+	$(E) "	CC	 jetpac (NTSC)"
 	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (NTSC).nes"
 
 .PHONY: build-partial
@@ -44,7 +44,7 @@ build-partial:
 	$(Q) echo "PARTIAL = 1"  >> config/generated.s
 	$(Q) echo "HZ = 60" >> config/generated.s
 
-	$(E) "	CC	 jetpac (partial, NTSC)"
+	$(E) "	CC	 jetpac (partial)"
 	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (DEV).nes"
 
 .PHONY: build-pal
