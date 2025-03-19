@@ -103,7 +103,9 @@
 
     bit PPU::STATUS
 
-    ;; Update the PPU control register with the shadowed value.
+    ;; Update the PPU control/mask registers with shadowed values.
+    lda PPU::zp_mask
+    sta PPU::MASK
     lda PPU::zp_control
     sta PPU::CONTROL
 

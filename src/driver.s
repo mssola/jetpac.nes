@@ -9,7 +9,25 @@
     zp_player_timer = $30
     PLAYER_TIMER_VALUE = HZ * 2
 
+    ;; Switch from the title screen to the main street. Note that this function
+    ;; is to be called with the PPU disabled. If that's not the case, then it
+    ;; will set the proper values to disable it on the next `nmi` call and set
+    ;; the `title over` flag. With that, call again this function so the
+    ;; switching is actually performed.
     .proc switch
+        ;; Some things from here require the PPU to be disabled. Hence, if
+        ;; that's not the case, disable it now. The `ppu` and the `title over`
+        ;; flags are set as well.
+        lda PPU::zp_mask
+        beq @do_switch
+        lda #%01000100
+        ora Globals::zp_flags
+        sta Globals::zp_flags
+        lda #$00
+        sta PPU::zp_mask
+        rts
+
+    @do_switch:
         ;; Get the assets ready for the main screen. That is, make sure that the
         ;; palettes and such are as desired since the title screen needed
         ;; another setup.
@@ -18,6 +36,10 @@
         ;; Switch to the other base nametable.
         lda #%10001010
         sta PPU::zp_control
+
+        ;; Enable back the PPU.
+        lda #%00011110
+        sta PPU::zp_mask
 
         ;; Setup the player timer.
         .ifdef PARTIAL
@@ -28,10 +50,10 @@
         sta zp_player_timer
 
         ;; Mark the state of the game as "game". That is, the player has
-        ;; started. Also set the `ppu` flag so the PPU control update takes
-        ;; place.
+        ;; started. Also set the `ppu` flag and unset the `title over` one.
         lda #%01000001
         ora Globals::zp_flags
+        and #%11111011
         sta Globals::zp_flags
 
         rts

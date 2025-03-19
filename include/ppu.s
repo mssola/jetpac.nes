@@ -9,4 +9,8 @@
     ;; Shadow for the PPU::CONTROL value. Touch this value instead of accessing
     ;; the PPU register directly.
     zp_control = $80
+
+    ;; Shadow for the PPU::MASK value. Touch this value instead of accessing the
+    ;; PPU register directly.
+    zp_mask = $81
 .endscope

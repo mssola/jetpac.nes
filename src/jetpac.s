@@ -40,8 +40,8 @@
 .include "assets.s"
 .include "background.s"
 .include "player.s"
-.include "driver.s"
 .include "title.s"
+.include "driver.s"
 .include "vectors.s"
 
 .proc main
@@ -72,6 +72,7 @@
 
     ;; Enable back the PPU
     lda #%00011110
+    sta PPU::zp_mask
     sta PPU::MASK
 
 @main_game_loop:
@@ -85,9 +86,15 @@
     jmp @over
 
 @title_screen:
+    ;; If we are in a transitioning state, avoid the update from the title.
+    lda Globals::zp_flags
+    and #%00000100
+    bne @do_switch
+
     jsr Title::update
     beq @set_flags
 
+@do_switch:
     ;; Start was pressed by the player, switch to the main game.
     jsr Driver::switch
     jmp @set_flags

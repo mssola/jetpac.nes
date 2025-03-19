@@ -1,8 +1,7 @@
 ;; Global variables used throughout the code base.
 .scope Globals
     ;;;
-    ;; Argument values as defined in https://github.com/mssola/style.nes. Note
-    ;; that these variables can also be used as temporary variables.
+    ;; Argument values reserved passing arguments to functions in memory.
     zp_arg0 = $00
     zp_arg1 = $01
     zp_arg2 = $02
@@ -30,7 +29,8 @@
     ;; |-----+------------+-------------------------------------------------------------|
     ;; |   7 | render     | Game logic is over, block main code until NMI code is over. |
     ;; |   6 | ppu        | PPU registers have to be touched                            |
-    ;; | 5-2 | -          | Unused                                                      |
+    ;; | 5-3 | -          | Unused                                                      |
+    ;; |   2 | title over | We are transitioning from title to game                     |
     ;; | 1-0 | game       | 0: title; 1: game; 2: game over, 3: game over (coin)        |
     zp_flags = $20
 .endscope

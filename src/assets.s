@@ -74,7 +74,30 @@
         dex
         bne @upper_title_bar_loop
 
-        ;; TODO: store back palettes after game over.
+        ;; Update 2nd palette for background. This is redundant upon entering
+        ;; the game, but it makes sense after a game over.
+        lda #$3F
+        sta PPU::ADDRESS
+        lda #$09
+        sta PPU::ADDRESS
+        lda #$28
+        sta PPU::DATA
+        lda #$2C
+        sta PPU::DATA
+        lda #$16
+        sta PPU::DATA
+
+        ;; Update 1st palette for foreground.
+        lda #$3F
+        sta PPU::ADDRESS
+        lda #$11
+        sta PPU::ADDRESS
+        lda #$30
+        sta PPU::DATA
+        lda #$10
+        sta PPU::DATA
+        lda #$30
+        sta PPU::DATA
 
         rts
     .endproc
@@ -82,11 +105,32 @@
     ;; Performs all the needed tricks in order to get the second nametable as
     ;; expected.
     .proc prepare_for_main_screen
-        ;; TODO: second palette for background should be:
-        ;; .byte $0F, $14, $2C, $28
-        ;;
-        ;; TODO: first palette for the foreground should be:
-        ;; .byte $0F, $16, $10, $30
+        bit PPU::STATUS
+
+        ;; Update 2nd palette for background.
+        lda #$3F
+        sta PPU::ADDRESS
+        lda #$09
+        sta PPU::ADDRESS
+        lda #$14
+        sta PPU::DATA
+        lda #$2C
+        sta PPU::DATA
+        lda #$28
+        sta PPU::DATA
+
+        ;; Update 1st palette for foreground.
+        lda #$3F
+        sta PPU::ADDRESS
+        lda #$11
+        sta PPU::ADDRESS
+        lda #$16
+        sta PPU::DATA
+        lda #$10
+        sta PPU::DATA
+        lda #$30
+        sta PPU::DATA
+
         rts
     .endproc
 
