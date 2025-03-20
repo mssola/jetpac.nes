@@ -1,4 +1,4 @@
-This is a port to the NES of the renown
+This is a port to the NES/Famicom of the renown
 [jetpac](https://en.wikipedia.org/wiki/Jetpac) game from Ultimate Play the Game.
 You can find a ROM to play the game in the [releases
 page](https://github.com/mssola/jetpac.nes/releases).

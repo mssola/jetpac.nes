@@ -61,14 +61,23 @@
 
     ;; Flags that manage the state of the game.
     ;;
-    ;; | Bit | Short name | Meaning when set                                         |
-    ;; |-----+------------+----------------------------------------------------------|
-    ;; |   7 | throttle   | Player is hitting the throttle                           |
-    ;; |   6 | heading    | heading right                                            |
-    ;; | 5-3 | -          | Unused                                                   |
-    ;; |   2 | update     | Sprite (animation or heading) must be updated            |
-    ;; | 1-0 | walk       | 0: still; 1: animation 1; 2: animation 2, 3: animation 3 |
+    ;; | Bit | Short name | Meaning when set                              |
+    ;; |-----+------------+-----------------------------------------------|
+    ;; |   7 | throttle   | Player is hitting the throttle                |
+    ;; |   6 | heading    | heading right                                 |
+    ;; | 5-3 | -          | Unused                                        |
+    ;; |   2 | update     | Sprite (animation or heading) must be updated |
+    ;; | 1-0 | walk       | 0: still; 1: animation 1; 2: animation 2      |
     zp_state = $50
+
+    ;; Simple counter for the walking animation.
+    zp_walk_counter = $51
+
+    ;; How many animations are there for walking?
+    WALK_ANIMATION_NR = 3
+
+    ;; How many frames are we allowing for each walk animation state?
+    WALK_COUNTER_MAX = (HZ / 10)
 
     ;; Initialize the player's sprite. Note that for the sprite to look
     ;; correctly on screen you still need to call `Player::update` afterwards.
@@ -77,12 +86,13 @@
         lda #%01000100
         sta zp_state
 
-        ;; Reset velocity
+        ;; Reset velocity and walking counter.
         lda #0
         sta zp_target_velocity_y
         sta zp_velocity_y
         sta zp_target_velocity_x
         sta zp_velocity_x
+        sta zp_walk_counter
 
         ;; Set position, and the screen coordinates will be updated upong
         ;; calling `update`, which on initialization will happen right after.
@@ -98,10 +108,56 @@
         rts
     .endproc
 
+    ;; Call this function to update anything player-related. Ideally this should
+    ;; be called on each game iteration for the main screen, and after the
+    ;; controller has been read.
     .proc update
+        ;; Update both vertical and horizontal positions.
         jsr update_vertical_position
         jsr update_horizontal_position
 
+        ;; If throttling, then reset the walking counter and the walk state.
+        bit zp_state
+        bpl @walk_animation
+        lda #0
+        sta zp_walk_counter
+        lda #%11111100
+        and zp_state
+        sta zp_state
+        jmp @to_screen
+
+    @walk_animation:
+        ;; If the player is not even moving, skip the animation.
+        lda zp_velocity_x
+        beq @to_screen
+
+        ;; Increase the counter and check for its maximum value.
+        inc zp_walk_counter
+        lda zp_walk_counter
+        cmp #WALK_COUNTER_MAX
+        bne @to_screen
+
+        ;; The counter has reached the maximum value. Increase the walk state.
+        lda zp_state
+        tax
+        and #%00000011
+        clc
+        adc #1
+        cmp #WALK_ANIMATION_NR
+        bne @set_animation
+        lda #0
+    @set_animation:
+        sta Globals::zp_tmp0
+        txa
+        and #%11111100
+        ora Globals::zp_tmp0
+        sta zp_state
+
+        ;; And reset the counter.
+        lda #0
+        sta zp_walk_counter
+
+    @to_screen:
         ;; At this point all positions are clear, transform them into screen
         ;; coordinates, eject out from boundaries and platforms, and update the
         ;; sprite with the new state.
@@ -424,8 +480,8 @@
         lda #0
         sta zp_velocity_y
 
-        ;; Set the player's state to grounded and with the still animation.
-        lda #%01111100
+        ;; Set the player's state to grounded.
+        lda #%01111111
         and zp_state
         ora #%00000100
         sta zp_state
@@ -465,10 +521,30 @@
         ;; dealing with heading can rely on these two registers.
         bit zp_state
         bmi @throttle
-        ;; TODO: walk animation
+
+        ;; The walking sprites depends on the current walking animation set on
+        ;; the player's state.
+        lda zp_state
+        and #%00000011
+        cmp #1
+        beq @animation1
+        cmp #2
+        beq @animation2
+        ;; NOTE: fallthrough for either 0 or even buggy states.
+    @still:
         ldx #$21
         ldy #$20
         bne @heading
+    @animation1:
+        ldx #$02
+        ldy #$20
+        bne @heading
+    @animation2:
+        ldx #$13
+        ldy #$12
+        bne @heading
+
+        ;; There's only one set for the throttle, no animations here.
     @throttle:
         ldx #$23
         ldy #$22

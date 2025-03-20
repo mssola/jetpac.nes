@@ -161,6 +161,7 @@
         .byte $0F, $16, $30, $00
 
         ;; TODO: fuel tank needs color $24
+        ;; TODO: SUSE coin needs $0F, $16, $10, $18
         ;; Foreground
         ;; 0: player & ship
         .byte $0F, $30, $10, $30
