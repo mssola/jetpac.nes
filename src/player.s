@@ -1,5 +1,28 @@
 .segment "CODE"
 
+;; Translate the given fixed-point 16-bit position into screen coordinates and
+;; leave it into the `a` register.
+;;
+;; NOTE: see the documentation on player's movement for more information.
+.macro FIXED_POINT_POSITION_TO_SCREEN POS_ADDR
+    ;; We save the high byte into a temporary value, and we load the low byte
+    ;; into the accumulator.
+    lda POS_ADDR + 1
+    sta Globals::zp_tmp0
+    lda POS_ADDR
+
+    ;; And now it's a matter of rotating the high byte into the low one to
+    ;; match a full byte.
+    lsr Globals::zp_tmp0
+    ror
+    lsr Globals::zp_tmp0
+    ror
+    lsr Globals::zp_tmp0
+    ror
+    lsr Globals::zp_tmp0
+    ror
+.endmacro
+
 ;; Functions and variables that keep up with the player's sprite. That is,
 ;; movement, heading, animation, collision with the environment, etc.
 .scope Player
@@ -158,11 +181,19 @@
         sta zp_walk_counter
 
     @to_screen:
-        ;; At this point all positions are clear, transform them into screen
-        ;; coordinates, eject out from boundaries and platforms, and update the
-        ;; sprite with the new state.
-        jsr position_to_screen
+        ;; Translate fixed-point positions to screen coordinates.
+        FIXED_POINT_POSITION_TO_SCREEN zp_position_y
+        sta zp_screen_y
+        FIXED_POINT_POSITION_TO_SCREEN zp_position_x
+        sta zp_screen_x
+
+        ;; We have the newly proposed screen coordinates. Now let's check if
+        ;; that collides with some background element. If that's the case,
+        ;; handle ejection logic now.
         jsr background_check
+
+        ;; And with that, update all the sprites with the information we have
+        ;; collected (i.e. heading, throttle, coordinates).
         JAL update_sprites
     .endproc
 
@@ -339,51 +370,6 @@
         sta zp_position_x + 1
 
     @end:
-        rts
-    .endproc
-
-    ;; Convert the positions with subpixel precision into mere screen
-    ;; coordinates. That is, update the values on `zp_screen_{x,y}` given the
-    ;; current values of `zp_position_{x,y}`.
-    .proc position_to_screen
-        ;; We save the high byte into a temporary value, and we load the low
-        ;; byte into the accumulator.
-        lda zp_position_y + 1
-        sta Globals::zp_tmp0
-        lda zp_position_y
-
-        ;; And now it's a matter of rotating the high byte into the low one to
-        ;; match a full byte.
-        lsr Globals::zp_tmp0
-        ror
-        lsr Globals::zp_tmp0
-        ror
-        lsr Globals::zp_tmp0
-        ror
-        lsr Globals::zp_tmp0
-        ror
-
-        ;; Ecce Y coordinates.
-        sta zp_screen_y
-
-        ;; And the same for the X coordinates.
-        lda zp_position_x + 1
-        sta Globals::zp_tmp0
-        lda zp_position_x
-
-        ;; And rolling...
-        lsr Globals::zp_tmp0
-        ror
-        lsr Globals::zp_tmp0
-        ror
-        lsr Globals::zp_tmp0
-        ror
-        lsr Globals::zp_tmp0
-        ror
-
-        ;; Ecce X coordinates.
-        sta zp_screen_x
-
         rts
     .endproc
 
