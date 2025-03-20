@@ -40,9 +40,14 @@
     INIT_X_POSITION_LO = $00
     INIT_X_POSITION_HI = $07
 
-    THROTTLE  = $D8
-    BLAST_OFF = $F8
-    GRAVITY   = $28
+    ;; Different acceleration/velocity constants.
+    GRAVITY        = $28
+    THROTTLE_UP    = $D8
+    THROTTLE_LEFT  = $D8
+    THROTTLE_RIGHT = $28
+    BLAST_OFF      = $F8
+    WALK_LEFT      = $F8
+    WALK_RIGHT     = $08
 
     zp_screen_y          = $40
     zp_position_y        = $41  ; NOTE: 16-bit.
@@ -112,10 +117,20 @@
         lda #(Joypad::BUTTON_UP | Joypad::BUTTON_A)
         and Joypad::zp_buttons1
         beq @set_gravity
+
+        ;; Player is throttling, reflect that on the player's state.
+        lda #%10000100
+        ora zp_state
+        sta zp_state
+
+        ;; If the current velocity is zero, then we are "blasting off", and a
+        ;; bit of animation plus special velocity should occur. Otherwise we
+        ;; should apply the regular throttle velocity.
         lda zp_velocity_y
         beq @blast_off
-        lda #THROTTLE
+        lda #THROTTLE_UP
         bne @compute_vertical
+
     @set_gravity:
         lda #GRAVITY
 
@@ -172,38 +187,100 @@
         sbc #0
         sta zp_position_y + 1
 
-        ;; Player is throttling.
-        lda #%10000100
-        ora zp_state
-        sta zp_state
-
         rts
     .endproc
 
     .proc update_horizontal_position
-        ;;
-        ;; TODO
-        ;;
-
         lda #Joypad::BUTTON_LEFT
         and Joypad::zp_buttons1
         beq @check_right
 
+        ;; We are facing left, reflect that on the state and the sprite.
         lda #%10111111
         and zp_state
         ora #%00000100
         sta zp_state
 
-        jmp @end
+        ;; If we are throttling, then we need to apply the proper acceleration
+        ;; for it. Otherwise, if walking, then there's no acceleration and the
+        ;; velocity is linear, so we just set the velocity and directly apply
+        ;; it, skipping the whole acceleration part.
+        bit zp_state
+        bmi @left_throttle
+        lda #WALK_LEFT
+        sta zp_velocity_x
+        bne @apply_velocity
+    @left_throttle:
+        lda #THROTTLE_LEFT
+        bne @apply_acceleration
 
+        ;; Same as the part above but applied to going right.
     @check_right:
         lda #Joypad::BUTTON_RIGHT
         and Joypad::zp_buttons1
-        beq @end
+        beq @nothing
 
         lda #%01000100
         ora zp_state
         sta zp_state
+
+        bit zp_state
+        bmi @right_throttle
+        lda #WALK_RIGHT
+        sta zp_velocity_x
+        bne @apply_velocity
+    @right_throttle:
+        lda #THROTTLE_RIGHT
+        bne @apply_acceleration
+
+        ;; If neither left nor right is being pressed, go for a zero
+        ;; acceleration, which will slow down the player instead of going to a
+        ;; full stop.
+    @nothing:
+        lda #0
+
+        ;; As with vertical motion, `a` contains the acceleration to aim for,
+        ;; and we just subtract the current velocity and see if we either have
+        ;; to accelerate or decelerate to reach that, and we do that with steps.
+    @apply_acceleration:
+        ;; TODO: as with vertical motion, mind NTSC vs PAL
+        sta Globals::zp_tmp0
+        lda zp_velocity_x
+        sec
+        sbc Globals::zp_tmp0
+        beq @apply_velocity
+        bmi @accelerate_left
+        dec zp_velocity_x
+        jmp @apply_velocity
+    @accelerate_left:
+        inc zp_velocity_x
+
+        ;; With the final velocity already at hand, update the position with it.
+    @apply_velocity:
+        lda zp_velocity_x
+        bmi @going_left
+
+        ;; The velocity is positive, so it's just a 16-bit addition.
+        clc
+        adc zp_position_x
+        sta zp_position_x
+        lda #0
+        adc zp_position_x + 1
+        sta zp_position_x + 1
+        rts
+
+    @going_left:
+        lda #0
+        sec
+        sbc zp_velocity_x
+        sta Globals::zp_tmp0
+        lda zp_position_x
+        sec
+        sbc Globals::zp_tmp0
+        sta zp_position_x
+        lda zp_position_x + 1
+        sbc #0
+        sta zp_position_x + 1
 
     @end:
         rts
