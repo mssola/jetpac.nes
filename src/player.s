@@ -48,9 +48,12 @@
     ;;  - Translating positions into screen coordinates it's a matter of simply
     ;;    rolling the low nibble of the high byte into the low byte.
 
-    ;; The height and width of the player.
+    ;; The height and width of the player. The "left offset" are the pixels to
+    ;; the left which are ignored for collision checks.
     PLAYER_HEIGHT = $18
+    PLAYER_WAIST  = $0C
     PLAYER_WIDTH  = $10
+    LEFT_OFFSET   = $02
 
     ;; The initial position is the ground minus the height of the sprite (as the
     ;; Y accounts for the top left pixel). For the high byte we only want to
@@ -64,13 +67,14 @@
     INIT_X_POSITION_HI = $07
 
     ;; Different acceleration/velocity constants.
-    GRAVITY        = $28
-    THROTTLE_UP    = $D8
-    THROTTLE_LEFT  = $D8
-    THROTTLE_RIGHT = $28
-    BLAST_OFF      = $F8
-    WALK_LEFT      = $F8
-    WALK_RIGHT     = $08
+    GRAVITY           = $28
+    THROTTLE_UP       = $D8
+    THROTTLE_LEFT     = $D8
+    THROTTLE_RIGHT    = $28
+    BLAST_OFF         = $F8     ; Initial velocity from ground.
+    WALK_LEFT         = $F8
+    WALK_RIGHT        = $08
+    REDUCE_FULL_SPEED = $10     ; Next velocity after hitting a ceiling at full speed.
 
     zp_screen_y          = $40
     zp_position_y        = $41  ; NOTE: 16-bit.
@@ -82,7 +86,7 @@
     zp_target_velocity_x = $48  ; TODO: needed?
     zp_velocity_x        = $49
 
-    ;; Flags that manage the state of the game.
+    ;; Flags that manage the state of the player.
     ;;
     ;; | Bit | Short name | Meaning when set                              |
     ;; |-----+------------+-----------------------------------------------|
@@ -376,80 +380,94 @@
     ;; Check on whether the player is out of bounds in any way and provide an
     ;; ejection logic for each situation.
     .proc background_check
+        ;;;
+        ;; The logic for this function is admittedly a bit of a mess, but it's
+        ;; trying to be efficient while not operating at a metatile level
+        ;; (because on how the background is laid out in the original game), and
+        ;; it's also trying to balance the physics to what can be seen on the
+        ;; original game. The end result is code that is a bit messy, but that
+        ;; is as close as I could get to the original, while being a bit
+        ;; forgiving (e.g. in some (literal) corner cases the code will say it's
+        ;; not colliding when it actually is, but doing so would be frustrating
+        ;; for the player). I'll go the extra mile documenting the code so
+        ;; readers (including "future me") can better grasp the logic.
+
+        ;;;
+        ;; 1. Vertical collision check
+        ;;
+        ;; In order to be forgiving probably starting with a collision check on
+        ;; the horizontal axis would've been better. But we want to be close to
+        ;; the original game, so we go for the vertical axis first. That is, we
+        ;; give preference at touching ground or a ceiling instead of ejecting
+        ;; at the horizontal axis first.
+        ;;
+        ;; Hence, first we need to setup zp_arg0 and zp_arg1 to call
+        ;; `Background::collides`.
+
         ;; If we are going down, the player's height should be added to the
-        ;; coordinate, as we are checking for the bottom.
+        ;; coordinate, as we are checking for the feet. Otherwise we will check
+        ;; for the head.
         lda zp_screen_y
         ldx zp_velocity_y
-        bmi :+
+        bmi @into_tile_coordinates
         clc
         adc #PLAYER_HEIGHT
-    :
+
+    @into_tile_coordinates:
         ;; And convert raw screen coordinates into a tile coordinate.
         lsr
         lsr
         lsr
-        sta Globals::zp_tmp0
+        sta Globals::zp_arg0
 
-        ;; We do the same for the X axis.
+        ;; Compute the X tile coordinate and check for a background collision.
+        ;; This coordinate will first be the one on the left.
         lda zp_screen_x
         tay
+        clc
+        adc #LEFT_OFFSET
         lsr
         lsr
         lsr
-        sta Globals::zp_tmp1
+        sta Globals::zp_arg1
+        jsr Background::collides
+        bne @collision
+
+        ;; If there was no collision, try again but taking the player's width
+        ;; into consideration. That is, we are doing the same check as before
+        ;; but on the right side this time.
         tya
         clc
         adc #PLAYER_WIDTH
         lsr
         lsr
         lsr
-        sta Globals::zp_tmp2
+        sta Globals::zp_arg1
+        jsr Background::collides
 
-        ;; Let's first check if there's any match on the vertical axis.
-        ldx #0
-    @row_check:
-        lda Background::platforms, x
+        ;; If there was still no collision, then go for a check on the
+        ;; horizontal axis.
+        beq @horizontal_check
 
-        ;; End of the list, no matches: begone!
-        cmp #$FF
-        beq @end
+        ;;;
+        ;; 2. Collision on the vertical axis
+        ;;
+        ;; The previous code detected a collision on the vertical axis. That is,
+        ;; the player either hit the ground (note that it could very well be the
+        ;; player just walking on the ground), or hit a ceiling.
+        ;;
+        ;; The ground case is a matter of computing the right position and
+        ;; canceling velocity. The ceiling case is similar but we have to add a
+        ;; bounce to be close to the original game.
 
-        ;; Prepare for either row check (which require one 'inx') or the
-        ;; next iteration (which require three 'inx').
-        inx
-
-        ;; The first byte is the vertical tile coordinate. If that doesn't
-        ;; match, go for the next one.
-        cmp Globals::zp_tmp0
-        beq @column_check
-        inx
-        inx
-        jmp @row_check
-
-    @column_check:
-        ;; Save up this value just in case we are actually grounded.
-        sta Globals::zp_tmp3
-
-        ;; Check that the right corner of the player is to the right of the left
-        ;; edge of the platform.
-        lda Background::platforms, x
-        cmp Globals::zp_tmp2
-        bcs @end
-
-        ;; And now check that the left corner of the player is to the left of
-        ;; the right edge of the platform.
-        inx
-        lda Background::platforms, x
-        cmp Globals::zp_tmp1
-        bcc @end
-
-        ;; Hey, we have a collision! Are we grounded or fighting with a ceiling?
+    @collision:
+        ;; Are we grounded or fighting with a ceiling?
         ldy zp_velocity_y
         bmi @ceiling
 
         ;; Translate the stored Y tile index into coordinates and account for
         ;; the player's height. That's the final screen position.
-        lda Globals::zp_tmp3
+        lda Globals::zp_arg0
         asl
         asl
         asl
@@ -475,7 +493,127 @@
         rts
 
     @ceiling:
-        ;; TODO
+        ;; We are hitting a platform from below, transform the Y tile index into
+        ;; coordinates and add the height of the platform.
+        lda Globals::zp_arg0
+        asl
+        asl
+        asl
+        clc
+        adc #8
+        sta zp_screen_y
+
+        ;; We don't do anything with the position as modifying slightly the
+        ;; velocity with the bounce is enough. The amount of bounce applied
+        ;; depends on whether we were at max velocity or not.
+        lda zp_velocity_y
+        cmp #THROTTLE_UP
+        bne @reduced_velocity
+        lda #REDUCE_FULL_SPEED
+        bne @correct_vertical_velocity
+    @reduced_velocity:
+        lda #8
+    @correct_vertical_velocity:
+        sta zp_velocity_y
+        rts
+
+        ;;;
+        ;; 3. Checking on the horizontal axis
+        ;;
+        ;; Now we are going to focus at the horizontal level. For this, we first
+        ;; determine whether it's moving to the left or to the right, and set up
+        ;; `zp_arg1` accordingly. Then, It will be a matter of checking if we
+        ;; are hitting a platform on the side with the waist, head or feet. Note
+        ;; that the head and the feet are not covered to this point because the
+        ;; code for the vertical check from before is only valid from "pure"
+        ;; hits from below/above a given platform.
+
+    @horizontal_check:
+        ;; Set up `zp_arg0` to point at the player's waist.
+        lda zp_screen_y
+        clc
+        adc #PLAYER_WAIST
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg0
+
+        ;; The X tile coordinate depends on whether we are moving left or right.
+        lda zp_screen_x
+        ldx zp_velocity_x
+        bmi @left
+        clc
+        adc #PLAYER_WIDTH
+    @left:
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg1
+
+        ;; Is there collision?
+        jsr Background::collides
+        bne @horizontal_collision
+
+        ;; No? Why don't you try the same thing but on the head instead of the
+        ;; waist? This can happen if we were falling down but we are hitting a
+        ;; platform with the head. This could have been handled during vertical
+        ;; collision check, but then we would get an ejection vertically, and in
+        ;; these cases we actually want a bounce if we want to mimick the
+        ;; original gameplay.
+        dec Globals::zp_arg0
+        jsr Background::collides
+        bne @horizontal_collision
+
+        ;; Still, no dice. Let's try with the feet. If that doesn't cut it, then
+        ;; we are done checking.
+        inc Globals::zp_arg0
+        inc Globals::zp_arg0
+        jsr Background::collides
+        beq @end
+
+        ;;;
+        ;; 4. Bounce horizontally
+        ;;
+        ;; The code above actually detected a collision. The ejection logic on
+        ;; the horizontal axis is a matter of bouncing the player to the
+        ;; contrary direction. This is similar to what we were doing on the
+        ;; ceiling ejection logic, but now applied to the X axis.
+
+    @horizontal_collision:
+        ;; Set into the `a` register the target X screen coordinate.
+        lda Globals::zp_arg1
+        asl
+        asl
+        asl
+
+        ;; The final X screen coordinate will depend on whether we were
+        ;; originally moving left or right.
+        ldx zp_velocity_x
+        bmi @left_collision
+
+        ;; We were moving right, so now the bounce has to turn the player to the
+        ;; left and the coordinate should reflect the player's width (otherwise
+        ;; we would get inserted into the hitting tile :D). Note that we don't
+        ;; need to change the player's heading, as that's not what the original
+        ;; game did.
+        sec
+        sbc #PLAYER_WIDTH
+        ldx #$E8
+        bne @horizontal_eject
+
+    @left_collision:
+        ;; We were moving left, so now the velocity has to be positive and we
+        ;; need to add the tile width to it.
+        clc
+        adc #8
+        ldx #$18
+
+    @horizontal_eject:
+        ;; The screen coordinate has been computed into the `a` register, and
+        ;; the previous code made sure to leave the new X velocity on the `x`
+        ;; register.
+        sta zp_screen_x
+        stx zp_velocity_x
 
     @end:
         rts
@@ -522,8 +660,8 @@
         ldy #$20
         bne @heading
     @animation1:
-        ldx #$02
-        ldy #$20
+        ldx #$03
+        ldy #$02
         bne @heading
     @animation2:
         ldx #$13
@@ -554,7 +692,7 @@
         sty $215
 
         ldx #%01000000
-        jmp @set_attributes
+        bne @set_attributes
     @right:
         lda #$00
         sta $201

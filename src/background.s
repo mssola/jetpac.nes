@@ -4,9 +4,82 @@
     ;; Screen coordinates on the Y axis for the ground.
     GROUND_Y_COORD = $C8
 
+    ;; Returns whether the given tile position collides with a background
+    ;; platform or not. It expects two memory arguments: zp_arg0 and zp_arg1,
+    ;; which contain the Y and the X tile coordinates respectively.
+    ;;
+    ;; The boolean value is directly set into the `a` register; but the memory
+    ;; will not be written in any way. Hence, you can still rely on the old
+    ;; `zp_arg0` and `zp_arg1` values even after calling this function.
+    .proc collides
+        ;; We iterate first on the rows, as that's how the data on
+        ;; `Background::platforms` is actually sorted by.
+        ldx #0
+    @row_check:
+        lda Background::platforms, x
+
+        ;; Is this the end of the list?
+        cmp #$FF
+        bne @continue
+
+        ;; Yes, begone!
+        lda #0
+        rts
+
+    @continue:
+        ;; Prepare for either row check (which require one 'inx') or the
+        ;; next iteration (which require three 'inx').
+        inx
+
+        ;; The first byte is the vertical tile coordinate. If that doesn't
+        ;; match, go for the next one.
+        cmp Globals::zp_arg0
+        beq @column_check
+        inx
+        inx
+        jmp @row_check
+
+    @column_check:
+        ;; Save the first return argument, which is the Y tile coordinate.
+        sta Globals::zp_arg2
+
+        ;; Check the left edge
+        ;;
+        ;; NOTE: small optimization on sky and ground which have $00 for the
+        ;; left edge.
+        lda Background::platforms, x
+        beq @yes
+        cmp Globals::zp_arg1
+        bcs @no
+
+        ;; Check the right edge.
+        inx
+        lda Background::platforms, x
+        cmp Globals::zp_arg1
+        bcc @no
+
+    @yes:
+        lda #1
+        rts
+    @no:
+        lda #0
+        rts
+    .endproc
+
     ;; To make them easier to traverse when performing background collision
     ;; checking, each platform is laid out in tile coordinates and spanning
     ;; three bytes: tile row, tile column beginning, tile column end.
+    ;;
+    ;; NOTE: this is wholeheartedly distinct to implementations like in
+    ;; github.com/mssola/code.nes. In there, and in examples such as the ones in
+    ;; `scroll`, a map is built up when loading the background and collision
+    ;; checking is a matter of determining the metatile index on that map and
+    ;; that's it. Here it's not possible because we are operating at the tile
+    ;; level, not a metatile level. This in turn has been done this way to
+    ;; better replicate the original experience. Mapping tiles would be a huge
+    ;; hit on memory, so we have to do things in a more rudimentary way.
+    ;; Fortunately for us, this is a rather small list, and traversing it each
+    ;; time is not too expensive.
     platforms:
         ;; Top of the screen.
         .byte $03, $00, $FF
