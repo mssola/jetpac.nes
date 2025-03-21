@@ -61,23 +61,25 @@
     @check_select:
         lda #Joypad::BUTTON_SELECT
         and Joypad::zp_buttons1
-        beq @check_start
+        bne @do_select
 
-        lda #SPRITE_Y_POSITION0
-        cmp $200
-        beq @down
-        sta $200
-        jmp @set_timer_and_end
-
-    @down:
-        lda #SPRITE_Y_POSITION1
-        sta $200
-
-    @check_start:
+        ;; If none of the above has been pressed, our only possibility is the
+        ;; start button. If that's the case, jump there, otherwise quit.
         lda #Joypad::BUTTON_START
         and Joypad::zp_buttons1
         beq @end
         JAL start
+
+    @do_select:
+        lda #SPRITE_Y_POSITION0
+        cmp $200
+        beq @down
+        sta $200
+        bne @set_timer_and_end
+
+    @down:
+        lda #SPRITE_Y_POSITION1
+        sta $200
 
     @set_timer_and_end:
         lda #TIMER_INIT_VALUE
