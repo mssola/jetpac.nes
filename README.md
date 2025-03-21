@@ -9,19 +9,18 @@ The game is a shooter in which you have to re-assemble your ship's parts and
 fill it with fuel, all while killing enemies that keep popping up. The controls
 are as follows:
 
-| Button                                         | Action                |
-|:----------------------------------------------:|:----------------------|
-| <kbd>Start</kbd>                               | Pause/Resume the game |
-| <kbd>Select</kbd>                              | *Not used*            |
-| <kbd>A</kbd>                                   | Throttle              |
-| <kbd>B</kbd>                                   | Shoot                 |
-| <kbd>Arrow Left</kbd> & <kbd>Arrow Right</kbd> | Move horizontally     |
-| <kbd>Arrow up</kbd>                            | Throttle              |
-| <kbd>Arrow down</kbd>                          | *Not used*            |
+| Button                                         | Action                                             |
+|:----------------------------------------------:|:---------------------------------------------------|
+| <kbd>Start</kbd>                               | Pause/Resume the game                              |
+| <kbd>Select</kbd>                              | Select 1/2 player game on the title screen         |
+| <kbd>A</kbd>                                   | Throttle                                           |
+| <kbd>B</kbd>                                   | Shoot                                              |
+| <kbd>Arrow Left</kbd> & <kbd>Arrow Right</kbd> | Move horizontally (walk or throttle when airborne) |
+| <kbd>Arrow up</kbd>                            | Throttle                                           |
+| <kbd>Arrow down</kbd>                          | *Not used*                                         |
 
-## [Changelog](https://pbs.twimg.com/media/DJDYCcLXcAA_eIo?format=jpg&name=small)
-
-Read the [CHANGELOG.md](./CHANGELOG.md) file.
+Other than that, read the [CHANGELOG.md](./CHANGELOG.md) file for details on
+what's different from the original and what to expect from this port.
 
 ## License
 
