@@ -1,8 +1,10 @@
 ## Why?
 
-Do you want to fix an error you have found? Do you know a way to improve my
-6502-fu or do you know a technique on NES/Famicom development that might help
-here? I am open for discussion and welcome any help!
+- You want to make a suggestion on something that could be improved.
+- You want to report a bug, something that doesn't work as expected.
+- You know of a sick 6502 assembly technique that could be applied.
+
+I am open for discussion and welcome any help!
 
 ## How?
 
@@ -34,6 +36,18 @@ In order to test your changes, I'd go this way:
    inside of the `out` directory.
 3. Run the ROM that was produced with an emulator of your choosing. Make sure
    that things run as expected.
+
+### Customizing the build process
+
+You can pass the following arguments to `make`:
+
+- `CC65`: the compiler to use (defaults to `cl65`).
+- `CCOPTS`: the options to use for the compiler (defaults to `--target nes`).
+- `RUBY`: the ruby to use (defaults to `ruby`).
+
+Note that you can also set `DEBUG=1`, and with that you will pass sobre extra
+debugging options, like telling `cl65` to also output a `out/labels.txt` file
+with memory address on the symbols that have been evaluated.
 
 ## Modifying assets
 

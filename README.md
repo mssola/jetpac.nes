@@ -1,7 +1,9 @@
 This is a port to the NES/Famicom of the renown
 [jetpac](https://en.wikipedia.org/wiki/Jetpac) game from Ultimate Play the Game.
 You can find a ROM to play the game in the [releases
-page](https://github.com/mssola/jetpac.nes/releases).
+page](https://github.com/mssola/jetpac.nes/releases). Read the
+[CONTRIBUTING.md](./CONTRIBUTING.md) file if you want to make any changes,
+report an issue or make a suggestion.
 
 ## The game
 

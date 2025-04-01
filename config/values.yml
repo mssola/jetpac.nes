@@ -1,0 +1,30 @@
+# Constants used throughout the game in a floating point format. The
+# `bin/values.rb` script will make sure to transform these into 4.4 signed fixed
+# point values that fit into a byte, as expected by the code from this game.
+#
+# Each file will have the name of the key from the first level (e.g. "player"
+# will become "config/values/player.s"), and under the file each constant will
+# be upper cased (e.g. "player.throttle_up" will become "THROTTLE_UP" inside of
+# the "player.s" file).
+
+player:
+    # Gravity and initial velocity when throttling from the ground.
+    gravity: 2.50
+    blast_off: -1.50
+
+    # Throttling.
+    throttle_up: -2.90
+    throttle_left: -2.90
+    throttle_right: 1.90
+
+    # Walking constant velocities.
+    walk_left: -1.80
+    walk_right: 0.80
+
+    # Horizontal bounces
+    bounce_left: -2.53
+    bounce_right: 1.53
+
+    # Vertical bounces
+    reduce_full_speed: 1.00
+    reduce_mid_speed: 0.53

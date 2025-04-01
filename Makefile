@@ -7,11 +7,22 @@ else
 	Q =
 endif
 
+# NOTE: you can configure `CC65` and `CCOPTS` with the compiler and its options
+# that you might require. Moreover, if you pass `DEBUG` to `make`, then an
+# `out/labels.txt` file will be generated.
 CC65   ?= cl65
 CCOPTS ?= --target nes
 ifeq "$(DEBUG)" "1"
 CCOPTS   += -g -Ln out/labels.txt
 endif
+
+# Ruby is used to generate the files on `config/values/`. If it can't be found,
+# a warning will be echo'ed.
+#
+# NOTE: you can actually set RUBY as an argument to `make` if you want to pass
+# something special to it.
+RUBY ?= ruby
+HAS_RUBY := $(shell command -v $(RUBY) >/dev/null 2>&1 && echo true || echo false)
 
 .PHONY: all
 all: clean deps build
@@ -25,10 +36,19 @@ clean:
 
 .PHONY: deps
 deps:
-	@which $(CC65) >/dev/null 2>/dev/null || (echo "ERROR: $(CC65) not found." && false)
+	@which $(CC65) >/dev/null 2>/dev/null || (echo "ERROR: '$(CC65)' not found." && false)
+
+.PHONY: gen-values
+gen-values:
+ifeq ($(HAS_RUBY),true)
+	$(E) "	GEN	 config/values"
+	$(Q) ruby bin/values.rb
+else
+	@(Q) echo "WARNING: '$(RUBY)' not found; files under 'config/values/' will not be generated."
+endif
 
 .PHONY: build
-build: build-full build-partial build-pal
+build: gen-values build-full build-partial build-pal
 
 .PHONY: build-full
 build-full:

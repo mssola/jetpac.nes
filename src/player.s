@@ -62,19 +62,15 @@
     INIT_Y_POSITION_LO = ((Background::GROUND_Y_COORD - PLAYER_HEIGHT) & $0F) << 4
     INIT_Y_POSITION_HI = (Background::GROUND_Y_COORD - PLAYER_HEIGHT) >> 4
 
-    ;; The initial position on the X axis is more or less at the center.
+    ;; The initial position on the X axis is right below the mid platform.
     INIT_X_POSITION_LO = $00
-    INIT_X_POSITION_HI = $07
+    INIT_X_POSITION_HI = $08
 
     ;; Different acceleration/velocity constants.
-    GRAVITY           = $28
-    THROTTLE_UP       = $D8
-    THROTTLE_LEFT     = $D8
-    THROTTLE_RIGHT    = $28
-    BLAST_OFF         = $F8     ; Initial velocity from ground.
-    WALK_LEFT         = $F8
-    WALK_RIGHT        = $08
-    REDUCE_FULL_SPEED = $10     ; Next velocity after hitting a ceiling at full speed.
+    ;;
+    ;; NOTE: automatically generated via `bin/values.rb`. Check the
+    ;; `config/values.yml` to understand the meaning of each constant.
+    .include "../config/values/player.s"
 
     zp_screen_y          = $40
     zp_position_y        = $41  ; NOTE: 16-bit.
@@ -553,7 +549,7 @@
         lda #REDUCE_FULL_SPEED
         bne @correct_vertical_velocity
     @reduced_velocity:
-        lda #8
+        lda #REDUCE_MID_SPEED
     @correct_vertical_velocity:
         sta zp_velocity_y
         rts
@@ -639,7 +635,7 @@
         ;; game did.
         sec
         sbc #PLAYER_WIDTH
-        ldx #$E8
+        ldx #BOUNCE_LEFT
         bne @horizontal_eject
 
     @left_collision:
@@ -647,7 +643,7 @@
         ;; need to add the tile width to it.
         clc
         adc #8
-        ldx #$18
+        ldx #BOUNCE_RIGHT
 
     @horizontal_eject:
         ;; The screen coordinate has been computed into the `a` register, and
