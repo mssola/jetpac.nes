@@ -9,6 +9,11 @@
     zp_player_timer = $30
     PLAYER_TIMER_VALUE = HZ * 2
 
+    .ifdef PAL
+        ;; Frame counter which resets every 5 frames.
+        zp_pal_counter = $31
+    .endif
+
     ;; Switch from the title screen to the main street. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
     ;; will set the proper values to disable it on the next `nmi` call and set
@@ -75,4 +80,31 @@
     @game:
         JAL Player::update
     .endproc
+
+    .ifdef PAL
+        ;; All the code that is needed to fix some values for PAL machines.
+        .proc pal_handler
+            ;; Check if 5 frames have passed since last counter reset.
+            lda Driver::zp_pal_counter
+            cmp #4
+            beq @do_handle
+
+            ;; Nope! Reset the player's step on PAL and increase the counter.
+            lda #1
+            sta Player::zp_step_on_pal
+            inc Driver::zp_pal_counter
+            bne @end
+
+        @do_handle:
+            ;; Increase the step just for this frame and reset the counter.
+            lda Player::zp_step_on_pal
+            clc
+            adc #2
+            sta Player::zp_step_on_pal
+            lda #0
+            sta Driver::zp_pal_counter
+        @end:
+            rts
+        .endproc
+    .endif
 .endscope

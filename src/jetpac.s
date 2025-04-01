@@ -52,6 +52,12 @@
     ;; Initialize the assets for the game.
     jsr Assets::init
 
+    ;; Initialize some PAL-specific constants.
+    .ifdef PAL
+        lda #0
+        sta Driver::zp_pal_counter
+    .endif
+
     ;; We shadow the PPU control register in memory. Depending on the `make`
     ;; target we might need to switch directly to the main game. Otherwise we go
     ;; into the title as expected.

@@ -100,6 +100,14 @@
     ;; Simple counter for the walking animation.
     zp_walk_counter = $51
 
+    .ifdef PAL
+        ;; The increment/decrement to be applied to the velocity on a PAL
+        ;; system. This value is updated on `driver.s` on each frame.
+        ;;
+        ;; NOTE: only used on PAL.
+        zp_step_on_pal = $52
+    .endif
+
     ;; How many animations are there for walking?
     WALK_ANIMATION_NR = 3
 
@@ -112,6 +120,12 @@
         ;; Initial state.
         lda #%01000100
         sta zp_state
+
+        ;; Set the step to be applied on PAL.
+        .ifdef PAL
+            lda #1
+            sta zp_step_on_pal
+        .endif
 
         ;; Reset velocity and walking counter.
         lda #0
@@ -236,13 +250,27 @@
         sbc Globals::zp_tmp0
         beq @apply_velocity
 
-        ;; Increase or decrease depending on what we have now.
-        ;; TODO: inc/dec might not quite cut it in NTSC vs PAL
+        ;; Increase or decrease depending on what we have now. Note that how
+        ;; this is done depends on whether we are on NTSC or PAL.
         bmi @down
-        dec zp_velocity_y
+        .ifdef PAL
+            lda zp_velocity_y
+            sec
+            sbc zp_step_on_pal
+            sta zp_velocity_y
+        .else
+            dec zp_velocity_y
+        .endif
         jmp @apply_velocity
     @down:
-        inc zp_velocity_y
+        .ifdef PAL
+            lda zp_velocity_y
+            clc
+            adc zp_step_on_pal
+            sta zp_velocity_y
+        .else
+            inc zp_velocity_y
+        .endif
         jmp @apply_velocity
 
     @blast_off:
@@ -334,17 +362,30 @@
         ;; and we just subtract the current velocity and see if we either have
         ;; to accelerate or decelerate to reach that, and we do that with steps.
     @apply_acceleration:
-        ;; TODO: as with vertical motion, mind NTSC vs PAL
         sta Globals::zp_tmp0
         lda zp_velocity_x
         sec
         sbc Globals::zp_tmp0
         beq @apply_velocity
         bmi @accelerate_left
-        dec zp_velocity_x
+        .ifdef PAL
+            lda zp_velocity_x
+            sec
+            sbc zp_step_on_pal
+            sta zp_velocity_x
+        .else
+            dec zp_velocity_x
+        .endif
         jmp @apply_velocity
     @accelerate_left:
-        inc zp_velocity_x
+        .ifdef PAL
+            lda zp_velocity_x
+            clc
+            adc zp_step_on_pal
+            sta zp_velocity_x
+        .else
+            inc zp_velocity_x
+        .endif
 
         ;; With the final velocity already at hand, update the position with it.
     @apply_velocity:

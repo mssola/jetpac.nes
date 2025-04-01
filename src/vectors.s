@@ -85,6 +85,11 @@
     lda #$02
     sta OAM::DMA
 
+    ;; PAL-specific code
+    .ifdef PAL
+        jsr Driver::pal_handler
+    .endif
+
     ;; TODO: some actions here will depend on the status of the game...
 
     ;; Decrease title timer.
