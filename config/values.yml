@@ -9,17 +9,17 @@
 
 player:
     # Gravity and initial velocity when throttling from the ground.
-    gravity: 2.50
+    gravity: 1.83
     blast_off: -1.50
 
     # Thrust/flying
-    thrust: -2.90
+    thrust: -2.00
     fly_left: -2.90
     fly_right: 1.90
 
     # Walking constant velocities.
     walk_left: -1.80
-    walk_right: 0.80
+    walk_right: 0.93
 
     # Horizontal bounces
     bounce_left: -2.53
