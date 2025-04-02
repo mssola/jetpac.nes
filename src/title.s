@@ -65,7 +65,7 @@
 
         ;; If none of the above has been pressed, our only possibility is the
         ;; start button. If that's the case, jump there, otherwise quit.
-        lda #Joypad::BUTTON_START
+        lda #(Joypad::BUTTON_START | Joypad::BUTTON_A)
         and Joypad::zp_buttons1
         beq @end
         JAL start
