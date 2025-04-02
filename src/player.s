@@ -370,11 +370,16 @@
         lda #THROTTLE_RIGHT
         bne @apply_acceleration
 
-        ;; If neither left nor right is being pressed, go for a zero
-        ;; acceleration, which will slow down the player instead of going to a
-        ;; full stop.
+        ;; If neither left nor right is being pressed we have to move to a
+        ;; resting state on the horizontal axis. When throttling this means an
+        ;; acceleration of 0 (i.e. slow down), when walking this means going to
+        ;; an immediate full stop.
     @nothing:
         lda #0
+        bit zp_state
+        bmi @apply_acceleration
+        sta zp_velocity_x
+        beq @apply_velocity
 
         ;; As with vertical motion, `a` contains the acceleration to aim for,
         ;; and we just subtract the current velocity and see if we either have
