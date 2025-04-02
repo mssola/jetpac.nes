@@ -4,9 +4,9 @@
 .ifdef PAL
     GRAVITY = $30
     BLAST_OFF = $F3
-    THROTTLE_UP = $D8
-    THROTTLE_LEFT = $D8
-    THROTTLE_RIGHT = $24
+    THRUST = $D8
+    FLY_LEFT = $D8
+    FLY_RIGHT = $24
     WALK_LEFT = $ED
     WALK_RIGHT = $0E
     BOUNCE_LEFT = $DE
@@ -16,9 +16,9 @@
 .else
     GRAVITY = $28
     BLAST_OFF = $F8
-    THROTTLE_UP = $E2
-    THROTTLE_LEFT = $E2
-    THROTTLE_RIGHT = $1D
+    THRUST = $E2
+    FLY_LEFT = $E2
+    FLY_RIGHT = $1D
     WALK_LEFT = $F3
     WALK_RIGHT = $0C
     BOUNCE_LEFT = $E7

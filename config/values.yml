@@ -12,10 +12,10 @@ player:
     gravity: 2.50
     blast_off: -1.50
 
-    # Throttling.
-    throttle_up: -2.90
-    throttle_left: -2.90
-    throttle_right: 1.90
+    # Thrust/flying
+    thrust: -2.90
+    fly_left: -2.90
+    fly_right: 1.90
 
     # Walking constant velocities.
     walk_left: -1.80

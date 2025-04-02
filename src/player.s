@@ -86,7 +86,7 @@
     ;;
     ;; | Bit | Short name | Meaning when set                              |
     ;; |-----+------------+-----------------------------------------------|
-    ;; |   7 | throttle   | Player is hitting the throttle                |
+    ;; |   7 | thrust     | Player is hitting the thrust                  |
     ;; |   6 | heading    | heading right                                 |
     ;; | 5-3 | -          | Unused                                        |
     ;; |   2 | update     | Sprite (animation or heading) must be updated |
@@ -218,7 +218,7 @@
         ;; This happens whenever we fall from a platform by walking. The
         ;; original game then switched into airborne state, so let's do that. In
         ;; particular, we reset the walking counter, the walk state, and we flip
-        ;; the `throttle` flag.
+        ;; the `thrust` flag.
         lda #0
         sta zp_walk_counter
         lda #%11111100
@@ -229,14 +229,14 @@
 
     @do_update_sprites:
         ;; And with that, update all the sprites with the information we have
-        ;; collected (i.e. heading, throttle, coordinates).
+        ;; collected (i.e. heading, thrust, coordinates).
         JAL update_sprites
     .endproc
 
     ;; Updates the `zp_velocity_y` and the `zp_position_y` depending on whether
     ;; the player is throttling or gravity should just apply.
     .proc update_vertical_position
-        ;; Check if the player is asking to throttle, otherwise apply gravity.
+        ;; Check if the player is asking to thrust, otherwise apply gravity.
         lda #(Joypad::BUTTON_UP | Joypad::BUTTON_A)
         and Joypad::zp_buttons1
         beq @set_gravity
@@ -248,10 +248,10 @@
 
         ;; If the current velocity is zero, then we are "blasting off", and a
         ;; bit of animation plus special velocity should occur. Otherwise we
-        ;; should apply the regular throttle velocity.
+        ;; should apply the regular thrust velocity.
         lda zp_velocity_y
         beq @blast_off
-        lda #THROTTLE_UP
+        lda #THRUST
         bne @compute_vertical
 
     @set_gravity:
@@ -338,17 +338,17 @@
         ora #%00000100
         sta zp_state
 
-        ;; If we are throttling, then we need to apply the proper acceleration
+        ;; If we are thrusting, then we need to apply the proper acceleration
         ;; for it. Otherwise, if walking, then there's no acceleration and the
         ;; velocity is linear, so we just set the velocity and directly apply
         ;; it, skipping the whole acceleration part.
         bit zp_state
-        bmi @left_throttle
+        bmi @fly_left
         lda #WALK_LEFT
         sta zp_velocity_x
         bne @apply_velocity
-    @left_throttle:
-        lda #THROTTLE_LEFT
+    @fly_left:
+        lda #FLY_LEFT
         bne @apply_acceleration
 
         ;; Same as the part above but applied to going right.
@@ -362,16 +362,16 @@
         sta zp_state
 
         bit zp_state
-        bmi @right_throttle
+        bmi @fly_right
         lda #WALK_RIGHT
         sta zp_velocity_x
         bne @apply_velocity
-    @right_throttle:
-        lda #THROTTLE_RIGHT
+    @fly_right:
+        lda #FLY_RIGHT
         bne @apply_acceleration
 
         ;; If neither left nor right is being pressed we have to move to a
-        ;; resting state on the horizontal axis. When throttling this means an
+        ;; resting state on the horizontal axis. When thrusting this means an
         ;; acceleration of 0 (i.e. slow down), when walking this means going to
         ;; an immediate full stop.
     @nothing:
@@ -571,7 +571,7 @@
         ;; velocity with the bounce is enough. The amount of bounce applied
         ;; depends on whether we were at max velocity or not.
         lda zp_velocity_y
-        cmp #THROTTLE_UP
+        cmp #THRUST
         bne @reduced_velocity
         lda #REDUCE_FULL_SPEED
         bne @correct_vertical_velocity
@@ -704,11 +704,11 @@
     ;; IDs to use on each slot, and also the attributes to be used, as the
     ;; heading affects whether things are to be flipped horizontally or not.
     .proc update_player_tiles
-        ;; Throttle or walking? In any case, on the `x` register we will put one
+        ;; Flying or walking? In any case, on the `x` register we will put one
         ;; of the tile IDs, and on the `y` register the other. This way the code
         ;; dealing with heading can rely on these two registers.
         bit zp_state
-        bmi @throttle
+        bmi @flying
 
         ;; The walking sprites depends on the current walking animation set on
         ;; the player's state.
@@ -732,8 +732,8 @@
         ldy #$12
         bne @heading
 
-        ;; There's only one set for the throttle, no animations here.
-    @throttle:
+        ;; There's only one set for the flying state, no animations here.
+    @flying:
         ldx #$23
         ldy #$22
 

@@ -8,18 +8,16 @@ report an issue or make a suggestion.
 ## The game
 
 The game is a shooter in which you have to re-assemble your ship's parts and
-fill it with fuel, all while killing enemies that keep popping up. The controls
-are as follows:
+fill it with fuel, all while killing enemies that keep popping up. In the game
+the controls are as follows:
 
-| Button                                         | Action                                             |
-|:----------------------------------------------:|:---------------------------------------------------|
-| <kbd>Start</kbd>                               | Pause/Resume the game                              |
-| <kbd>Select</kbd>                              | Select 1/2 player game on the title screen         |
-| <kbd>A</kbd>                                   | Throttle                                           |
-| <kbd>B</kbd>                                   | Shoot                                              |
-| <kbd>Arrow Left</kbd> & <kbd>Arrow Right</kbd> | Move horizontally (walk or throttle when airborne) |
-| <kbd>Arrow up</kbd>                            | Throttle                                           |
-| <kbd>Arrow down</kbd>                          | *Not used*                                         |
+| Button                                         | Action                 |
+|:----------------------------------------------:|:-----------------------|
+| <kbd>Start</kbd> & <kbd>Select</kbd>           | Pause/Resume the game  |
+| <kbd>A</kbd> & <kbd>Arrow Up</kbd>             | Thrust                 |
+| <kbd>Arrow Left</kbd> & <kbd>Arrow Right</kbd> | Fly or walk left/right |
+| <kbd>Arrow Down</kbd>                          | Hover                  |
+| <kbd>B</kbd>                                   | Shoot                  |
 
 Other than that, read the [CHANGELOG.md](./CHANGELOG.md) file for details on
 what's different from the original and what to expect from this port.
