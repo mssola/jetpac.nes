@@ -236,6 +236,18 @@
     ;; Updates the `zp_velocity_y` and the `zp_position_y` depending on whether
     ;; the player is throttling or gravity should just apply.
     .proc update_vertical_position
+        ;; Is the player airborne and asking to hover? If so we can just skip
+        ;; everything.
+        bit zp_state
+        bpl @check_thrust
+        lda #Joypad::BUTTON_DOWN
+        and Joypad::zp_buttons1
+        beq @check_thrust
+        lda #0
+        sta zp_velocity_y
+        rts
+
+    @check_thrust:
         ;; Check if the player is asking to thrust, otherwise apply gravity.
         lda #(Joypad::BUTTON_UP | Joypad::BUTTON_A)
         and Joypad::zp_buttons1
