@@ -206,6 +206,28 @@
         ;; handle ejection logic now.
         jsr background_check
 
+        ;; After we have a new velocity while taking the background into
+        ;; account. Are we suddently falling?
+        lda zp_velocity_y
+        beq @do_update_sprites
+        bmi @do_update_sprites
+        bit zp_state
+        bmi @do_update_sprites
+
+        ;; We are falling: we were at a walking state and now we are falling.
+        ;; This happens whenever we fall from a platform by walking. The
+        ;; original game then switched into airborne state, so let's do that. In
+        ;; particular, we reset the walking counter, the walk state, and we flip
+        ;; the `throttle` flag.
+        lda #0
+        sta zp_walk_counter
+        lda #%11111100
+        and zp_state
+        lda #%10000000
+        ora zp_state
+        sta zp_state
+
+    @do_update_sprites:
         ;; And with that, update all the sprites with the information we have
         ;; collected (i.e. heading, throttle, coordinates).
         JAL update_sprites
