@@ -14,6 +14,10 @@
         zp_pal_counter = $31
     .endif
 
+    ;; Timer for the pause/unpause workflow.
+    PAUSE_TIMER_VALUE = (HZ / 3)
+    zp_pause_timer = $32
+
     ;; Switch from the title screen to the main street. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
     ;; will set the proper values to disable it on the next `nmi` call and set
@@ -77,7 +81,57 @@
     @load_player:
         jsr Player::init
 
+        ;; Initialize pause timer.
+        lda #0
+        sta zp_pause_timer
+
     @game:
+        ;; Check if the player is toggling the `pause` state.
+        lda #(Joypad::BUTTON_START | Joypad::BUTTON_SELECT)
+        and Joypad::zp_buttons1
+        beq @skip_pause_handling
+
+        ;; What does the timer say, is the player allowed to do it?
+        lda zp_pause_timer
+        bne @skip_pause_handling
+
+        ;; The timer is zero and the player asked to pause, let's reset the
+        ;; timer.
+        lda #PAUSE_TIMER_VALUE
+        sta zp_pause_timer
+
+        ;; Pause vs unpause.
+        lda #%00001000
+        and Globals::zp_flags
+        bne @unpause
+
+        ;; Pause: set the flag and skip the update.
+        lda #%00001000
+        ora Globals::zp_flags
+        sta Globals::zp_flags
+        rts
+
+    @unpause:
+        ;; Unset the flag and go to update.
+        lda #%11110111
+        and Globals::zp_flags
+        sta Globals::zp_flags
+        bne @do_update
+
+    @skip_pause_handling:
+        ;; Decrement the pause timer if it's not in a zero value.
+        lda zp_pause_timer
+        beq @pause_check
+        dec zp_pause_timer
+
+    @pause_check:
+        ;; Are we paused? If so return before updating.
+        lda #%00001000
+        and Globals::zp_flags
+        beq @do_update
+        rts
+
+    @do_update:
         JAL Player::update
     .endproc
 

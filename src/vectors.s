@@ -85,6 +85,11 @@
     lda #$02
     sta OAM::DMA
 
+    ;; Are we paused? If so skip timers, PAL handler and the likes.
+    lda #%00001000
+    and Globals::zp_flags
+    bne @ppu_registers
+
     ;; PAL-specific code
     .ifdef PAL
         jsr Driver::pal_handler
@@ -94,10 +99,10 @@
 
     ;; Decrease title timer.
     lda Title::zp_title_timer
-    beq :+
+    beq @ppu_registers
     dec Title::zp_title_timer
-:
 
+@ppu_registers:
     ;; Should we update PPU registers?
     bit Globals::zp_flags
     bvc @scroll

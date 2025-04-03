@@ -29,7 +29,8 @@
     ;; |-----+------------+-------------------------------------------------------------|
     ;; |   7 | render     | Game logic is over, block main code until NMI code is over. |
     ;; |   6 | ppu        | PPU registers have to be touched                            |
-    ;; | 5-3 | -          | Unused                                                      |
+    ;; | 5-4 | -          | Unused                                                      |
+    ;; |   3 | paused     | Game is in pause state                                      |
     ;; |   2 | title over | We are transitioning from title to game                     |
     ;; | 1-0 | game       | 0: title; 1: game; 2: game over, 3: game over (coin)        |
     zp_flags = $20
