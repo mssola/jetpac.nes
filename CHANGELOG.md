@@ -9,7 +9,7 @@ adapted to the reality of the NES/Famicom. This means:
   [Famicom Disk System](https://en.wikipedia.org/wiki/Famicom_Disk_System), of
   course), but at the same time I wanted to re-use at least some of its elements
   on the otherwise quite blank title screen from the original. Hence, both
-  screens have been merged to something that feels more like it belongs to the
+  screens have been merged into something that feels more like it belongs to the
   NES/Famicom library.
 - **Colors** are slightly different because of palette differences between the
   NES/Famicom and the ZX Spectrum. That being said, some colors have been

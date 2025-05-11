@@ -4,8 +4,8 @@
 #
 # Each file will have the name of the key from the first level (e.g. "player"
 # will become "config/values/player.s"), and under the file each constant will
-# be upper cased (e.g. "player.throttle_up" will become "THROTTLE_UP" inside of
-# the "player.s" file).
+# be upper cased (e.g. "player.blast_off" will become "BLAST_OFF" inside of the
+# "player.s" file).
 
 player:
     # Gravity and initial velocity when throttling from the ground.
