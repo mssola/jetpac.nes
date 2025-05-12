@@ -45,9 +45,17 @@
 .include "vectors.s"
 
 .proc main
-    ;; Disable the PPU.
+    ;; Disable the PPU and zero out variables which shadow PPU registers.
     lda #0
     sta PPU::MASK
+    sta PPU::zp_mask
+    sta PPU::zp_control
+
+    ;; Initialize other global variables which the rest of the game assume to
+    ;; have zero as their initial values.
+    sta Globals::zp_flags
+    sta Joypad::zp_buttons1
+    sta Joypad::zp_buttons2
 
     ;; Initialize the assets for the game.
     jsr Assets::init

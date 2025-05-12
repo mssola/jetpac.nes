@@ -5,64 +5,54 @@
 
 ;; Pretty standard reset function, nothing crazy.
 .proc reset
+    ;; Disable interrupts and decimal mode.
     sei
     cld
 
+    ;; Disable APU frame counter.
     ldx #$40
     stx APU::FRAME_COUNTER
 
+    ;; Setup the stack.
     ldx #$FF
     txs
 
+    ;; Disable NMIs and the APU's DMC.
     inx
     stx PPU::CONTROL
     stx PPU::MASK
     stx APU::DMC
 
+    ;; First PPU wait.
     bit PPU::STATUS
 @vblankwait1:
     bit PPU::STATUS
     bpl @vblankwait1
 
-    ldx #0
-    lda #0
-@ram_reset_loop:
-    sta $000, x
-    sta $100, x
-    sta $300, x
-    sta $400, x
-    sta $500, x
-    sta $600, x
-    sta $700, x
-    inx
-    bne @ram_reset_loop
-
+    ;; Reset all sprites by simply moving the Y coordinate out of screen.
     lda #$EF
+    ldx #0
 @sprite_reset_loop:
     sta $200, x
     inx
+    inx
+    inx
+    inx
     bne @sprite_reset_loop
 
+    ;; DMA setup for sprite reset.
     lda #$00
     sta OAM::ADDRESS
     lda #$02
     sta OAM::DMA
 
+    ;; Second PPU wait. After that the PPU is stable.
 @vblankwait2:
     bit PPU::STATUS
     bpl @vblankwait2
 
-    lda #$3F
-    sta PPU::ADDRESS
-    lda #$00
-    sta PPU::ADDRESS
-
-    lda #$0F
-    ldx #$20
-@palettes_reset_loop:
-    sta PPU::DATA
-    dex
-    bne @palettes_reset_loop
+    ;; NOTE: palettes are not initialized here as it's going to be one of the
+    ;; first things done on `main` code.
 
     jmp main
 .endproc
