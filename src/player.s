@@ -110,6 +110,9 @@
     ;; How many frames are we allowing for each walk animation state?
     WALK_COUNTER_MAX = (HZ / 10)
 
+    ;; Number of sprites from which the player is made of.
+    PLAYER_SPRITES_COUNT = 6
+
     ;; Initialize the player's sprite. Note that for the sprite to look
     ;; correctly on screen you still need to call `Player::update` afterwards.
     .proc init

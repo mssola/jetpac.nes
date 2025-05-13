@@ -18,7 +18,13 @@
     PAUSE_TIMER_VALUE = (HZ / 3)
     zp_pause_timer = $32
 
-    ;; Switch from the title screen to the main street. Note that this function
+    ;; Number of sprites available for sprite cycling.
+    SPRITE_CYCLING_BYTES = (64 - Player::PLAYER_SPRITES_COUNT) * 4
+
+    ;; TODO
+    zp_next_bullet_cycle = $33
+
+    ;; Switch from the title screen to the main screen. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
     ;; will set the proper values to disable it on the next `nmi` call and set
     ;; the `title over` flag. With that, call again this function so the
@@ -80,10 +86,14 @@
 
     @load_player:
         jsr Player::init
+        jsr Bullets::init
 
         ;; Initialize pause timer.
         lda #0
         sta zp_pause_timer
+
+        ;; Initialize variables for sprite cycling.
+        sta zp_next_bullet_cycle
 
     @game:
         ;; Check if the player is toggling the `pause` state.
@@ -131,8 +141,156 @@
         beq @do_update
         rts
 
+        ;; This is the actual meat of the main game, which updates the state of
+        ;; the player, bullets, enemies, etc.
     @do_update:
-        JAL Player::update
+        jsr Player::update
+        jsr Bullets::update
+        JAL sprite_cycling
+        ;; TODO: fall through?
+    .endproc
+
+    .proc sprite_cycling
+        ;; The 'y' register will contain the index on OAM of the sprite to be
+        ;; allocated.
+        ldy #(Player::PLAYER_SPRITES_COUNT * 4)
+
+        ;; The 'x' register will index from the different sprite pools.
+        ldx zp_next_bullet_cycle
+        lda Bullets::zp_bullets_pool_base, x
+
+        ;; Is this a valid bullet?
+        cmp #$FF
+        beq @after_first_bullet
+
+        ;; It is a valid bullet! Set it now.
+        lda Bullets::zp_bullets_pool_base + 1, x
+        sta $200, y
+        iny
+
+        ;; The tile selection depends on how many moves the bullet has done.
+        lda Bullets::zp_bullets_pool_base, x
+        and #%01111111
+        cmp #Bullets::BULLET_LAST_TRANSITION
+        bcs @last_bullet_tile
+        cmp #Bullets::BULLET_FIRST_TRANSITION
+        bcs @mid_bullet_tile
+        lda #$0E
+        bne @set_bullet_tile
+    @mid_bullet_tile:
+        lda #$0F
+        bne @set_bullet_tile
+    @last_bullet_tile:
+        lda #$1E
+    @set_bullet_tile:
+        sta $200, y
+
+        iny
+        lda #0
+        sta $200, y
+        iny
+        lda Bullets::zp_bullets_pool_base + 2, x
+        sta $200, y
+        iny
+
+    @after_first_bullet:
+        ;; Save the index that was considered for the first bullet.
+        stx Globals::zp_tmp0
+
+        ;; Increase the index for the bullets cycling. If wrapping is detected,
+        ;; then it resets this value back to zero.
+        inx
+        inx
+        inx
+        cpx #Bullets::BULLETS_POOL_CAPACITY_BYTES
+        bne @set_next_bullets_cycle
+        ldx #0
+    @set_next_bullets_cycle:
+        stx zp_next_bullet_cycle
+
+        ;; TODO: ensure 1 enemy
+        iny
+        iny
+        iny
+        iny
+
+        ;; TODO: ensure 1 item
+        iny
+        iny
+        iny
+        iny
+
+        ;; TODO: rest of bullets
+        ldx #0
+    @rest_o_bullets:
+        cpx #Bullets::BULLETS_POOL_CAPACITY_BYTES
+        beq @rest_o_enemies
+        cpx Globals::zp_tmp0
+        bne @do_bullet
+        inx
+        inx
+        inx
+        cpx #Bullets::BULLETS_POOL_CAPACITY_BYTES
+        beq @rest_o_enemies
+    @do_bullet:
+        lda Bullets::zp_bullets_pool_base, x
+        cmp #$FF
+        beq @next_bullet
+
+        lda Bullets::zp_bullets_pool_base + 1, x
+        sta $200, y
+        iny
+
+        ;; The tile selection depends on how many moves the bullet has done.
+        lda Bullets::zp_bullets_pool_base, x
+        and #%01111111
+        cmp #Bullets::BULLET_LAST_TRANSITION
+        bcs @other_last_bullet_tile
+        cmp #Bullets::BULLET_FIRST_TRANSITION
+        bcs @other_mid_bullet_tile
+        lda #$0E
+        bne @other_set_bullet_tile
+    @other_mid_bullet_tile:
+        lda #$0F
+        bne @other_set_bullet_tile
+    @other_last_bullet_tile:
+        lda #$1E
+    @other_set_bullet_tile:
+        sta $200, y
+
+        iny
+        lda #0
+        sta $200, y
+        iny
+        lda Bullets::zp_bullets_pool_base + 2, x
+        sta $200, y
+        iny
+
+    @next_bullet:
+        inx
+        inx
+        inx
+        jmp @rest_o_bullets
+
+    @rest_o_enemies:
+        ;; TODO: rest of enemies
+        ;; TODO: rest of items
+
+        ;; We are done with all the sprites we wanted to allocat. Now let's
+        ;; clear out the rest of the slots just in case there was some leftover
+        ;; from a past sprite.
+        lda #$EF
+    @check_cycle_end:
+        cpy #SPRITE_CYCLING_BYTES
+        bne @reset_sprite
+        rts
+    @reset_sprite:
+        sta $200, y
+        iny
+        iny
+        iny
+        iny
+        jmp @check_cycle_end    ;TODO: maybe just bne?
     .endproc
 
     .ifdef PAL

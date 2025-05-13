@@ -40,6 +40,7 @@
 .include "assets.s"
 .include "background.s"
 .include "player.s"
+.include "bullets.s"
 .include "title.s"
 .include "driver.s"
 .include "vectors.s"
