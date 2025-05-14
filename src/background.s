@@ -11,6 +11,8 @@
     ;; The boolean value is directly set into the `a` register; but the memory
     ;; will not be written in any way. Hence, you can still rely on the old
     ;; `zp_arg0` and `zp_arg1` values even after calling this function.
+    ;;
+    ;; The 'y' register is preserved.
     .proc collides
         ;; We iterate first on the rows, as that's how the data on
         ;; `Background::platforms` is actually sorted by.
@@ -40,10 +42,7 @@
         jmp @row_check
 
     @column_check:
-        ;; Save the first return argument, which is the Y tile coordinate.
-        sta Globals::zp_arg2
-
-        ;; Check the left edge
+        ;; Check the left edge.
         ;;
         ;; NOTE: small optimization on sky and ground which have $00 for the
         ;; left edge.
