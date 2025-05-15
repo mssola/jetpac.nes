@@ -1,6 +1,10 @@
 .segment "CODE"
 
 .scope Background
+    ;; Screen coordinate on the Y axis where elements can begin to appear (e.g.
+    ;; upper bound for new enemies, starting point for falling items, etc.).
+    UPPER_MARGIN_Y_COORD = $10
+
     ;; Screen coordinates on the Y axis for the ground.
     GROUND_Y_COORD = $C8
 

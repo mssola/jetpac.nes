@@ -104,6 +104,12 @@
     .endif
 
     ;; TODO: some actions here will depend on the status of the game...
+    lda Globals::zp_flags
+    and #%00000001
+    bne @ppu_registers
+
+    ;; Increase the random seed.
+    inc Prng::zp_rand
 
     ;; Decrease title timer.
     lda Title::zp_title_timer

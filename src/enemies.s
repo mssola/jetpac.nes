@@ -25,7 +25,9 @@
         sta zp_enemies_pool_base, x
 
         inx
-        lda #$80                ; TODO: random
+        stx Globals::zp_tmp0
+        jsr Prng::random_valid_y_coordinate
+        ldx Globals::zp_tmp0
         sta zp_enemies_pool_base, x
 
         inx

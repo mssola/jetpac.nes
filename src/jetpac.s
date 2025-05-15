@@ -39,6 +39,7 @@
 
 .include "assets.s"
 .include "background.s"
+.include "prng.s"
 .include "player.s"
 .include "bullets.s"
 .include "enemies.s"
