@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ;; Global variables used throughout the code base.
 .scope Globals
     ;;;
