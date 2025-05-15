@@ -41,6 +41,7 @@
 .include "background.s"
 .include "player.s"
 .include "bullets.s"
+.include "enemies.s"
 .include "title.s"
 .include "driver.s"
 .include "vectors.s"

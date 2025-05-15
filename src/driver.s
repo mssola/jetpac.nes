@@ -86,6 +86,7 @@
     @load_player:
         jsr Player::init
         jsr Bullets::init
+        jsr Enemies::init
 
         ;; Initialize pause timer.
         lda #0
