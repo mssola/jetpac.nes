@@ -18,10 +18,9 @@
     PAUSE_TIMER_VALUE = (HZ / 3)
     zp_pause_timer = $32
 
-    ;; Number of sprites available for sprite cycling.
-    SPRITE_CYCLING_BYTES = (64 - Player::PLAYER_SPRITES_COUNT) * 4
-
-    ;; TODO
+    ;; Index from the pool of bullets from which the sprite cycling function
+    ;; will start on. This is constantly rotating so all bullets have at least
+    ;; the chance to have the highest priority every now and then.
     zp_next_bullet_cycle = $33
 
     ;; Switch from the title screen to the main screen. Note that this function
@@ -209,16 +208,16 @@
         stx zp_next_bullet_cycle
 
         ;; TODO: ensure 1 enemy
-        iny
-        iny
-        iny
-        iny
+        ;; iny
+        ;; iny
+        ;; iny
+        ;; iny
 
         ;; TODO: ensure 1 item
-        iny
-        iny
-        iny
-        iny
+        ;; iny
+        ;; iny
+        ;; iny
+        ;; iny
 
         ;; TODO: rest of bullets
         ldx #0
@@ -276,21 +275,25 @@
         ;; TODO: rest of enemies
         ;; TODO: rest of items
 
-        ;; We are done with all the sprites we wanted to allocat. Now let's
+        ;; Are all spots already filled? As in, did the 'y' register wrap
+        ;; around? If so, just go to the end.
+        tya
+        beq @end
+
+        ;; We are done with all the sprites we wanted to allocate. Now let's
         ;; clear out the rest of the slots just in case there was some leftover
-        ;; from a past sprite.
+        ;; from a past sprite. Since the OAM space is 256 bytes long, we just
+        ;; need for the 'y' register to wrap around in order to quit.
         lda #$EF
-    @check_cycle_end:
-        cpy #SPRITE_CYCLING_BYTES
-        bne @reset_sprite
-        rts
     @reset_sprite:
         sta $200, y
         iny
         iny
         iny
         iny
-        jmp @check_cycle_end    ;TODO: maybe just bne?
+        bne @reset_sprite
+    @end:
+        rts
     .endproc
 
     .ifdef PAL
