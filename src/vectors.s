@@ -3,6 +3,12 @@
 
 .segment "CODE"
 
+;; Debug utilities.
+.scope Debug
+    ;; Counter for frame drops.
+    zp_frame_drops = $90
+.endscope
+
 ;; Pretty standard reset function, nothing crazy.
 .proc reset
     ;; Disable interrupts and decimal mode.
@@ -28,6 +34,12 @@
 @vblankwait1:
     bit PPU::STATUS
     bpl @vblankwait1
+
+    ;; Initialize the counter for frame drops before any NMIs can come in.
+    .ifdef PARTIAL
+        lda #0
+        sta Debug::zp_frame_drops
+    .endif
 
     ;; Reset all sprites by simply moving the Y coordinate out of screen.
     lda #$EF
@@ -60,7 +72,13 @@
 .proc nmi
     ;; Should we skip it?
     bit Globals::zp_flags
-    bpl @end
+
+    ;; If we are on a dev environment, account for any frame drops.
+    .ifdef PARTIAL
+        bpl @account_for_frame_drop
+    .else
+        bpl @end
+    .endif
 
     ;; Save registers.
     pha
@@ -130,6 +148,9 @@
     pla
 
 @end:
+    rti
+@account_for_frame_drop:
+    inc Debug::zp_frame_drops
     rti
 .endproc
 
