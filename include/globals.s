@@ -34,4 +34,12 @@
     ;; |   2 | title over | We are transitioning from title to game                     |
     ;; | 1-0 | game       | 0: title; 1: game; 2: game over, 3: game over (coin)        |
     zp_flags = $20
+
+    ;; Current level of the game.
+    zp_level = $24
+
+    ;; The level "kind". Note that `zp_level` can go on forever, but the level
+    ;; "kind" repeats every 8 waves. Hence, this is just a cached version of
+    ;; masking `zp_level`.
+    zp_level_kind = $25
 .endscope

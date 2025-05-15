@@ -58,6 +58,19 @@
     sta Joypad::zp_buttons1
     sta Joypad::zp_buttons2
 
+    ;; Initialize the level. We allow the build system to pass its own value for
+    ;; this in `LEVEL`, just in case we want to debug the enemy of a specific
+    ;; level.
+    .ifdef LEVEL
+        lda #LEVEL
+        sta Globals::zp_level
+        and #%00000111
+        sta Globals::zp_level_kind
+    .else
+        sta Globals::zp_level
+        sta Globals::zp_level_kind
+    .endif
+
     ;; Initialize the assets for the game.
     jsr Assets::init
 
