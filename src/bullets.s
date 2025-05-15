@@ -4,7 +4,7 @@
 ;; `driver.s` will use in order to render and deal with bullets on screen.
 .scope Bullets
     ;; Maximum amount of bullets allowed on screen at the same time.
-    BULLETS_POOL_CAPACITY = 20
+    BULLETS_POOL_CAPACITY = 10
 
     ;; Base address for the pool of bullets used on this game. The pool has
     ;; #BULLETS_POOL_CAPACITY bullet objects where each one is 3 bytes long:
