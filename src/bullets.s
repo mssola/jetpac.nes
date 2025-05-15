@@ -6,6 +6,9 @@
     ;; Maximum amount of bullets allowed on screen at the same time.
     BULLETS_POOL_CAPACITY = 10
 
+    ;; The capacity of the bullets pool in bytes.
+    BULLETS_POOL_CAPACITY_BYTES = BULLETS_POOL_CAPACITY * 3
+
     ;; Base address for the pool of bullets used on this game. The pool has
     ;; #BULLETS_POOL_CAPACITY bullet objects where each one is 3 bytes long:
     ;;  1. State: which can have two formats:
@@ -17,15 +20,6 @@
     ;;  3. X coordinate.
     zp_bullets_pool_base = $A0
 
-    ;; The screen coordinates of the bullet being inspected right now. Used when
-    ;; computing the move of bullets and checking possible collisions with
-    ;; background/enemies.
-    zp_current_bullet_y = $A1
-    zp_current_bullet_x = $A2
-
-    ;; The capacity of the bullets pool in bytes.
-    BULLETS_POOL_CAPACITY_BYTES = BULLETS_POOL_CAPACITY * 3
-
     ;; The current amount of bullets on screen.
     zp_bullets_pool_size = $E0
 
@@ -33,6 +27,12 @@
     ;; This is a small optimization so not to start from the beginning every
     ;; time, as consecutive allocation is a very common case.
     zp_last_allocated_index = $E1
+
+    ;; The screen coordinates of the bullet being inspected right now. Used when
+    ;; computing the move of bullets and checking possible collisions with
+    ;; background/enemies.
+    zp_current_bullet_y = $E2
+    zp_current_bullet_x = $E3
 
     ;; The amount of time we are not allowing B presses. This is a rather low
     ;; value so you can have quite some presses per frame.
