@@ -155,9 +155,13 @@
 
 @end:
     rti
+
+    ;; If we are on a dev environment, account for any frame drops.
+.ifdef PARTIAL
 @account_for_frame_drop:
     inc Debug::zp_frame_drops
     rti
+.endif
 .endproc
 
 ;; Unused.
