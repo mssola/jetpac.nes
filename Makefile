@@ -7,13 +7,21 @@ else
 	Q =
 endif
 
+# CC65 is set to `xa65` if that exists, otherwise we resort to `cl65` by default.
+XA65_BIN := $(shell command -v xa65 2>/dev/null)
+ifneq ($(XA65_BIN),)
+	CC65   ?= xa65
+else
+	CC65   ?= cl65
+endif
+
 # NOTE: you can configure `CC65` and `CCOPTS` with the compiler and its options
-# that you might require. Moreover, if you pass `DEBUG` to `make`, then an
-# `out/labels.txt` file will be generated.
-CC65   ?= cl65
+# that you might require.
 CCOPTS ?= --target nes
-ifeq "$(DEBUG)" "1"
-CCOPTS   += -g -Ln out/labels.txt
+
+# Be strict and more verbose when using xa65.
+ifeq ($(CC65),xa65)
+	CCOPTS += --strict --stats
 endif
 
 # Ruby is used to generate the files on `config/values/`. If it can't be found,

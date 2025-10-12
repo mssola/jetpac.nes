@@ -41,13 +41,11 @@ In order to test your changes, I'd go this way:
 
 You can pass the following arguments to `make`:
 
-- `CC65`: the compiler to use (defaults to `cl65`).
-- `CCOPTS`: the options to use for the compiler (defaults to `--target nes`).
+- `CC65`: the compiler to use (defaults to
+  [xa65](https://github.com/mssola/tools.nes) if that exists, otherwise `cl65`).
+- `CCOPTS`: the options to use for the compiler (defaults to `--target nes` and
+  it adds `--strict` if using `xa65`).
 - `RUBY`: the ruby to use (defaults to `ruby`).
-
-Note that you can also set `DEBUG=1`, and with that you will pass sobre extra
-debugging options, like telling `cl65` to also output a `out/labels.txt` file
-with memory address on the symbols that have been evaluated.
 
 ## Modifying assets
 
