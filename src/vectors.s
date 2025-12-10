@@ -5,8 +5,8 @@
 
 ;; Debug utilities.
 .scope Debug
-    ;; Counter for frame drops.
-    zp_frame_drops = $90
+    ;; Counter for frame drops. Only touched when PARTIAL is defined.
+    zp_frame_drops = $90        ; asan:ignore
 .endscope
 
 ;; Pretty standard reset function, nothing crazy.
@@ -17,7 +17,7 @@
 
     ;; Disable APU frame counter.
     ldx #$40
-    stx APU::FRAME_COUNTER
+    stx APU::m_frame_counter
 
     ;; Setup the stack.
     ldx #$FF
@@ -25,14 +25,14 @@
 
     ;; Disable NMIs and the APU's DMC.
     inx
-    stx PPU::CONTROL
-    stx PPU::MASK
-    stx APU::DMC
+    stx PPU::m_control
+    stx PPU::m_mask
+    stx APU::m_dmc
 
     ;; First PPU wait.
-    bit PPU::STATUS
+    bit PPU::m_status
 @vblankwait1:
-    bit PPU::STATUS
+    bit PPU::m_status
     bpl @vblankwait1
 
     ;; Initialize the counter for frame drops before any NMIs can come in.
@@ -45,7 +45,7 @@
     lda #$EF
     ldx #0
 @sprite_reset_loop:
-    sta $200, x
+    sta OAM::m_sprites, x
     inx
     inx
     inx
@@ -54,13 +54,13 @@
 
     ;; DMA setup for sprite reset.
     lda #$00
-    sta OAM::ADDRESS
+    sta OAM::m_address
     lda #$02
-    sta OAM::DMA
+    sta OAM::m_dma
 
     ;; Second PPU wait. After that the PPU is stable.
 @vblankwait2:
-    bit PPU::STATUS
+    bit PPU::m_status
     bpl @vblankwait2
 
     ;; NOTE: palettes are not initialized here as it's going to be one of the
@@ -89,9 +89,9 @@
 
     ;; Sprite DMA.
     lda #$00
-    sta OAM::ADDRESS
+    sta OAM::m_address
     lda #$02
-    sta OAM::DMA
+    sta OAM::m_dma
 
     ;; Are we paused? If so skip timers, PAL handler and the likes.
     lda #%00001000
@@ -126,20 +126,20 @@
     and Globals::zp_flags
     sta Globals::zp_flags
 
-    bit PPU::STATUS
+    bit PPU::m_status
 
     ;; Update the PPU control/mask registers with shadowed values.
     lda PPU::zp_mask
-    sta PPU::MASK
+    sta PPU::m_mask
     lda PPU::zp_control
-    sta PPU::CONTROL
+    sta PPU::m_control
 
 @scroll:
     ;; Always reset the scroll just in case.
-    bit PPU::STATUS
+    bit PPU::m_status
     lda #$00
-    sta PPU::SCROLL
-    sta PPU::SCROLL
+    sta PPU::m_scroll
+    sta PPU::m_scroll
 
     ;; Unblock the main code.
     lda #%01111111

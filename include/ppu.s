@@ -1,10 +1,10 @@
 .scope PPU
-    CONTROL = $2000
-    MASK    = $2001
-    STATUS  = $2002
-    SCROLL  = $2005
-    ADDRESS = $2006
-    DATA    = $2007
+    m_control = $2000
+    m_mask    = $2001
+    m_status  = $2002
+    m_scroll  = $2005
+    m_address = $2006
+    m_data    = $2007
 
     ;; Shadow for the PPU::CONTROL value. Touch this value instead of accessing
     ;; the PPU register directly.

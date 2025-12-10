@@ -6,17 +6,17 @@
     ;; Argument values reserved passing arguments to functions in memory.
     zp_arg0 = $00
     zp_arg1 = $01
-    zp_arg2 = $02
-    zp_arg3 = $03
-    zp_arg4 = $04
+    ;; zp_arg2 = $02
+    ;; zp_arg3 = $03
+    ;; zp_arg4 = $04
 
     ;;;
     ;; Random values that can be used inside of functions for temporary values
     ;; so `zp_argX` variables are not overwritten as often.
     zp_tmp0 = $05
     zp_tmp1 = $06
-    zp_tmp2 = $07
-    zp_tmp3 = $08
+    ;; zp_tmp2 = $07
+    ;; zp_tmp3 = $08
 
     ;;;
     ;; Reserve a byte of memory for preserving indices on memory. This is needed

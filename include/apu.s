@@ -1,4 +1,4 @@
 .scope APU
-    DMC           = $4010
-    FRAME_COUNTER = $4017
+    m_dmc           = $4010
+    m_frame_counter = $4017
 .endscope

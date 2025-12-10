@@ -7,9 +7,9 @@
 .macro FIXED_POINT_POSITION_TO_SCREEN POS_ADDR
     ;; We save the high byte into a temporary value, and we load the low byte
     ;; into the accumulator.
-    lda POS_ADDR + 1
+    lda POS_ADDR + 1            ; asan:ignore
     sta Globals::zp_tmp0
-    lda POS_ADDR
+    lda POS_ADDR                ; asan:ignore
 
     ;; And now it's a matter of rotating the high byte into the low one to
     ;; match a full byte.
@@ -73,12 +73,12 @@
     .include "../config/values/player.s"
 
     zp_screen_y          = $40
-    zp_position_y        = $41  ; NOTE: 16-bit.
+    zp_position_y        = $41  ; asan:reserve $02
     zp_target_velocity_y = $43  ; TODO: needed?
     zp_velocity_y        = $44
 
     zp_screen_x          = $45
-    zp_position_x        = $46  ; NOTE: 16-bit.
+    zp_position_x        = $46  ; asan:reserve $02
     zp_target_velocity_x = $48  ; TODO: needed?
     zp_velocity_x        = $49
 
@@ -760,40 +760,40 @@
         bvs @right
 
         lda #$01
-        sta $201
+        sta OAM::m_sprites + $01
         lda #$00
-        sta $205
+        sta OAM::m_sprites + $05
         lda #$11
-        sta $209
+        sta OAM::m_sprites + $09
         lda #$10
-        sta $20D
-        stx $211
-        sty $215
+        sta OAM::m_sprites + $0D
+        stx OAM::m_sprites + $11
+        sty OAM::m_sprites + $15
 
         ldx #%01000000
         bne @set_attributes
     @right:
         lda #$00
-        sta $201
+        sta OAM::m_sprites + $01
         lda #$01
-        sta $205
+        sta OAM::m_sprites + $05
         lda #$10
-        sta $209
+        sta OAM::m_sprites + $09
         lda #$11
-        sta $20D
-        stx $215
-        sty $211
+        sta OAM::m_sprites + $0D
+        stx OAM::m_sprites + $15
+        sty OAM::m_sprites + $11
 
         ldx #$00
 
         ;; The `x` register contains the tile attributes.
     @set_attributes:
-        stx $202
-        stx $206
-        stx $20A
-        stx $20E
-        stx $212
-        stx $216
+        stx OAM::m_sprites + $02
+        stx OAM::m_sprites + $06
+        stx OAM::m_sprites + $0A
+        stx OAM::m_sprites + $0E
+        stx OAM::m_sprites + $12
+        stx OAM::m_sprites + $16
 
         rts
     .endproc
@@ -802,27 +802,27 @@
     .proc update_sprites_coordinates
         ;; Y axis.
         lda zp_screen_y
-        sta $0200
-        sta $0204
+        sta OAM::m_sprites
+        sta OAM::m_sprites + $04
         clc
         adc #8
-        sta $0208
-        sta $020C
+        sta OAM::m_sprites + $08
+        sta OAM::m_sprites + $0C
         clc
         adc #8
-        sta $0210
-        sta $0214
+        sta OAM::m_sprites + $10
+        sta OAM::m_sprites + $14
 
         ;; X axis.
         lda zp_screen_x
-        sta $0203
-        sta $020B
-        sta $0213
+        sta OAM::m_sprites + $03
+        sta OAM::m_sprites + $0B
+        sta OAM::m_sprites + $13
         clc
         adc #8
-        sta $0207
-        sta $020F
-        sta $0217
+        sta OAM::m_sprites + $07
+        sta OAM::m_sprites + $0F
+        sta OAM::m_sprites + $17
 
         rts
     .endproc

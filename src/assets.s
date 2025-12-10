@@ -24,7 +24,7 @@
         lda #.hibyte(main_screen)
         sta Globals::zp_arg1
         ldx #$28
-        jsr load_screen_x
+        jsr load_screen_x ;; TODO: jal
 
         rts
     .endproc
@@ -33,17 +33,17 @@
     ;; Globals::zp_arg{0,1}. Set the `x` register to the high byte of the
     ;; nametable to be used.
     .proc load_screen_x
-        bit PPU::STATUS
+        bit PPU::m_status
 
-        stx PPU::ADDRESS
+        stx PPU::m_address
         lda #$00
-        sta PPU::ADDRESS
+        sta PPU::m_address
 
         ldy #0
         ldx #4
     @loop:
         lda (Globals::zp_arg0), y
-        sta PPU::DATA
+        sta PPU::m_data
         iny
         bne @loop
 
@@ -60,44 +60,44 @@
     ;; Performs all the needed tricks in order to get the first nametable as
     ;; expected.
     .proc prepare_for_title_screen
-        bit PPU::STATUS
+        bit PPU::m_status
 
         lda #$23
-        sta $2006
+        sta PPU::m_address
         lda #$C8
-        sta $2006
+        sta PPU::m_address
 
         ldx #$10
     @upper_title_bar_loop:
         lda #%10101010
-        sta $2007
+        sta PPU::m_data
         dex
         bne @upper_title_bar_loop
 
         ;; Update 2nd palette for background. This is redundant upon entering
         ;; the game, but it makes sense after a game over.
         lda #$3F
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$09
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$28
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$2C
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$16
-        sta PPU::DATA
+        sta PPU::m_data
 
         ;; Update 1st palette for foreground.
         lda #$3F
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$11
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$30
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$10
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$30
-        sta PPU::DATA
+        sta PPU::m_data
 
         rts
     .endproc
@@ -105,31 +105,31 @@
     ;; Performs all the needed tricks in order to get the second nametable as
     ;; expected.
     .proc prepare_for_main_screen
-        bit PPU::STATUS
+        bit PPU::m_status
 
         ;; Update 2nd palette for background.
         lda #$3F
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$09
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$14
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$2C
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$28
-        sta PPU::DATA
+        sta PPU::m_data
 
         ;; Update 1st palette for foreground.
         lda #$3F
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$11
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$16
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$10
-        sta PPU::DATA
+        sta PPU::m_data
         lda #$30
-        sta PPU::DATA
+        sta PPU::m_data
 
         rts
     .endproc
@@ -137,14 +137,14 @@
     ;; Copies all the palettes for our game into the proper PPU address.
     .proc init_palettes
         lda #$3F
-        sta PPU::ADDRESS
+        sta PPU::m_address
         lda #$00
-        sta PPU::ADDRESS
+        sta PPU::m_address
 
         ldx #0
     @load_palettes_loop:
         lda palettes, x
-        sta PPU::DATA
+        sta PPU::m_data
         inx
         cpx #$20
         bne @load_palettes_loop
@@ -177,9 +177,9 @@
     ;; simple game, I have so much space left in the cartridge that I can go
     ;; bananas with it. This helps out loading the screen as we can go faster
     ;; and it is less error prone.
-    title_screen:   
+    title_screen:
         .incbin "../assets/title.nam"
-    main_screen:   
+    main_screen:
         .incbin "../assets/main.nam"
 .endscope
 

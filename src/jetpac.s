@@ -50,7 +50,7 @@
 .proc main
     ;; Disable the PPU and zero out variables which shadow PPU registers.
     lda #0
-    sta PPU::MASK
+    sta PPU::m_mask
     sta PPU::zp_mask
     sta PPU::zp_control
 
@@ -89,13 +89,13 @@
         jsr Driver::switch
 
         lda PPU::zp_control
-        sta PPU::CONTROL
+        sta PPU::m_control
     .else
         jsr Title::init
 
         lda #%10001000
         sta PPU::zp_control
-        sta PPU::CONTROL
+        sta PPU::m_control
     .endif
 
     cli
@@ -103,7 +103,7 @@
     ;; Enable back the PPU
     lda #%00011110
     sta PPU::zp_mask
-    sta PPU::MASK
+    sta PPU::m_mask
 
 @main_game_loop:
     READ_JOYPAD1

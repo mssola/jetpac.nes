@@ -18,13 +18,13 @@
 
         ;; Initialize the sprite that guides the player on the menu.
         lda #SPRITE_Y_POSITION0
-        sta $200
+        sta OAM::m_sprites
         lda #$30
-        sta $201
+        sta OAM::m_sprites + 1
         lda #$00
-        sta $202
+        sta OAM::m_sprites + 2
         lda #SPRITE_X_POSITION
-        sta $203
+        sta OAM::m_sprites + 3
 
         rts
     .endproc
@@ -42,9 +42,9 @@
         beq @check_down
 
         lda #SPRITE_Y_POSITION0
-        cmp $200
+        cmp OAM::m_sprites
         beq @end
-        sta $200
+        sta OAM::m_sprites
         jmp @set_timer_and_end
 
     @check_down:
@@ -53,9 +53,9 @@
         beq @check_select
 
         lda #SPRITE_Y_POSITION1
-        cmp $200
+        cmp OAM::m_sprites
         beq @end
-        sta $200
+        sta OAM::m_sprites
         jmp @set_timer_and_end
 
     @check_select:
@@ -72,14 +72,14 @@
 
     @do_select:
         lda #SPRITE_Y_POSITION0
-        cmp $200
+        cmp OAM::m_sprites
         beq @down
-        sta $200
+        sta OAM::m_sprites
         bne @set_timer_and_end
 
     @down:
         lda #SPRITE_Y_POSITION1
-        sta $200
+        sta OAM::m_sprites
 
     @set_timer_and_end:
         lda #TIMER_INIT_VALUE
@@ -94,7 +94,7 @@
     .proc start
         ;; Hide the sprite from the menu.
         lda #$EF
-        sta $200
+        sta OAM::m_sprites
 
         lda #1
         rts

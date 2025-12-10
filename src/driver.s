@@ -6,7 +6,7 @@
     ;;
     ;; NOTE: this memory address is shared with `zp_title_timer`, as they can
     ;; never conflict with each other.
-    zp_player_timer = $30
+    zp_player_timer = $30       ; asan:ignore
     PLAYER_TIMER_VALUE = HZ * 2
 
     .ifdef PAL
@@ -165,7 +165,7 @@
 
         ;; It is a valid bullet! Set it now.
         lda Bullets::zp_bullets_pool_base + 1, x
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
 
         ;; The tile selection depends on how many moves the bullet has done.
@@ -183,14 +183,14 @@
     @last_bullet_tile:
         lda #$1E
     @set_bullet_tile:
-        sta $200, y
+        sta OAM::m_sprites, y
 
         iny
         lda #0
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
         lda Bullets::zp_bullets_pool_base + 2, x
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
 
     @after_first_bullet:
@@ -238,7 +238,7 @@
         beq @next_bullet
 
         lda Bullets::zp_bullets_pool_base + 1, x
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
 
         ;; The tile selection depends on how many moves the bullet has done.
@@ -256,14 +256,14 @@
     @other_last_bullet_tile:
         lda #$1E
     @other_set_bullet_tile:
-        sta $200, y
+        sta OAM::m_sprites, y
 
         iny
         lda #0
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
         lda Bullets::zp_bullets_pool_base + 2, x
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
 
     @next_bullet:
@@ -287,7 +287,7 @@
         ;; need for the 'y' register to wrap around in order to quit.
         lda #$EF
     @reset_sprite:
-        sta $200, y
+        sta OAM::m_sprites, y
         iny
         iny
         iny

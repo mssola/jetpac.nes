@@ -1,11 +1,12 @@
 .scope OAM
-    ADDRESS = $2003
-    DMA     = $4014
-.endscope
+    ;; Region in internal RAM where sprites are being allocated for later use in
+    ;; the DMA process. The entire page is reserved, as there are 64 sprites x 4
+    ;; bytes each = 256 bytes in total.
+    m_sprites = $200            ; asan:reserve $100
 
-.macro OAM_WRITE_SPRITES
-    lda #$00
-    sta OAM::ADDR
-    lda #$02
-    sta OAM::DMA
-.endmacro
+    ;;;
+    ;; Actual addresses from OAM space.
+
+    m_address = $2003
+    m_dma     = $4014
+.endscope

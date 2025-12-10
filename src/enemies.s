@@ -10,7 +10,7 @@
     ENEMIES_INITIAL_X = $F0
 
     ;; TODO: 3 bytes a la bullets
-    zp_enemies_pool_base = $60
+    zp_enemies_pool_base = $60  ; asan:reserve $09
 
     zp_enemies_timer = $D0
     zp_enemies_pool_size = $D1

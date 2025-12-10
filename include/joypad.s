@@ -10,8 +10,8 @@
     BUTTON_RIGHT  = 1 << 0
 
     ;; Port addresses for controllers.
-    JOYPAD1 = $4016
-    JOYPAD2 = $4017
+    m_joypad1 = $4016
+    ;; m_joypad2 = $4017
 
     ;; After running a `read_*` function these two variables will contain the
     ;; given result.
@@ -49,14 +49,14 @@
     .proc unsafe_read_x
         ;; Start the latch process.
         lda #$01
-        sta Joypad::JOYPAD1
+        sta Joypad::m_joypad1
         sta Joypad::zp_buttons1, x   ; Bit as a guard for the loop below.
         lsr
-        sta Joypad::JOYPAD1
+        sta Joypad::m_joypad1
 
         ;; Now the joypad is ready to accept reads.
     @loop:
-        lda Joypad::JOYPAD1, x
+        lda Joypad::m_joypad1, x
         and #%00000011              ; Ignore bits other than controller.
         cmp #$01                    ; Set carry if and only if nonzero.
         rol Joypad::zp_buttons1, x   ; Carry -> bit 0; bit 7 -> Carry
