@@ -19,9 +19,13 @@ endif
 # that you might require.
 CCOPTS ?= --target nes
 
-# Be strict and more verbose when using xa65.
+# Be strict and when using xa65, and extra verbose if V=1.
 ifeq ($(CC65),xa65)
+ifeq ($(strip $(V)),)
+	CCOPTS += --strict
+else
 	CCOPTS += --strict --stats
+endif
 endif
 
 # Ruby is used to generate the files on `config/values/`. If it can't be found,
