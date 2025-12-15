@@ -48,6 +48,7 @@ clean:
 	@rm -rf out
 	@find . -type f -name "*.o" -delete
 	@find . -type f -name "*.nes" -delete
+	@rm -rf .nasm/
 	@mkdir -p out/
 
 .PHONY: deps
