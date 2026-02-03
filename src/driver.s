@@ -23,6 +23,15 @@
     ;; the chance to have the highest priority every now and then.
     zp_next_bullet_cycle = $33
 
+    ;; The index for the first bullet from the bullets pool on sprite cycling.
+    zp_first_bullet = $34
+
+    ;; The index for the first enemy from the enemies pool on sprite cycling.
+    zp_first_enemy = $36
+
+    ;; Same as `zp_next_bullet_cycle` but for enemies.
+    zp_next_enemy_cycle = $37
+
     ;; Switch from the title screen to the main screen. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
     ;; will set the proper values to disable it on the next `nmi` call and set
@@ -94,6 +103,7 @@
 
         ;; Initialize variables for sprite cycling.
         sta zp_next_bullet_cycle
+        sta zp_next_enemy_cycle
 
     @game:
         ;; Check if the player is toggling the `pause` state.
@@ -155,6 +165,9 @@
         ;; allocated.
         ldy #(Player::PLAYER_SPRITES_COUNT * 4)
 
+        ;;;
+        ;; 1. Attempt to allocate the first spot for a bullet.
+
         ;; The 'x' register will index from the different sprite pools.
         ldx zp_next_bullet_cycle
         lda Bullets::zp_bullets_pool_base, x
@@ -195,7 +208,7 @@
 
     @after_first_bullet:
         ;; Save the index that was considered for the first bullet.
-        stx Globals::zp_tmp0
+        stx zp_first_bullet     ; TODO: why not after the first ldx?
 
         ;; Increase the index for the bullets cycling. If wrapping is detected,
         ;; then it resets this value back to zero.
@@ -208,11 +221,38 @@
     @set_next_bullets_cycle:
         stx zp_next_bullet_cycle
 
-        ;; TODO: ensure 1 enemy
-        ;; iny
-        ;; iny
-        ;; iny
-        ;; iny
+        ;;;
+        ;; 2. Attempt to allocate the next spot for the first enemy.
+
+        ;; Get the enemy status byte, while also preserving the current enemy
+        ;; cycle index.
+        ldx zp_next_enemy_cycle
+        stx zp_first_enemy
+        lda Enemies::zp_enemies_pool_base, x
+
+        ;; Is this a valid enemy?
+        cmp #$FF
+        beq @after_first_enemy
+
+        ;; Yes! Let's prepare the arguments an allocate an enemy.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        sta Globals::zp_arg0
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sta Globals::zp_arg1
+        jsr Enemies::allocate_sprite_y
+
+    @after_first_enemy:
+        ;; Increase the index for the enemies cycling. If wrapping is detected,
+        ;; then it resets this value back to zero.
+        ldx zp_first_enemy
+        inx
+        inx
+        inx
+        cpx #Enemies::ENEMIES_POOL_CAPACITY_BYTES
+        bne @set_next_enemies_cycle
+        ldx #0
+    @set_next_enemies_cycle:
+        stx zp_next_enemy_cycle
 
         ;; TODO: ensure 1 item
         ;; iny
@@ -220,12 +260,11 @@
         ;; iny
         ;; iny
 
-        ;; TODO: rest of bullets
         ldx #0
     @rest_o_bullets:
         cpx #Bullets::BULLETS_POOL_CAPACITY_BYTES
         beq @rest_o_enemies
-        cpx Globals::zp_tmp0
+        cpx zp_first_bullet
         bne @do_bullet
         inx
         inx
