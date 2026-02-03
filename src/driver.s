@@ -156,8 +156,7 @@
     @do_update:
         jsr Player::update
         jsr Bullets::update
-        JAL sprite_cycling
-        ;; TODO: fall through?
+        __fallthrough__ sprite_cycling
     .endproc
 
     .proc sprite_cycling

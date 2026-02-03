@@ -20,3 +20,13 @@
 .macro JAL ADDR
     jmp ADDR
 .endmacro
+
+;; Pseudo-instruction from 'nasm' that is not available for 'ca65'. An empty
+;; implementation is actually quite accurate, as it's just a way for 'nasm' to
+;; perform extra checks when programmers want to explicitly make the code fall
+;; through.
+.ifndef __NASM__
+    .macro __fallthrough__ arg
+        ;; Nothing to do.
+    .endmacro
+.endif
