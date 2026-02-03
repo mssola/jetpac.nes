@@ -19,7 +19,7 @@ endif
 # that you might require.
 CCOPTS ?= --target nes
 
-# Be strict and when using xa65, and extra verbose if V=1.
+# Be strict when using xa65, and extra verbose if V=1.
 ifeq ($(CC65),xa65)
 ifeq ($(strip $(V)),)
 	CCOPTS += --strict
