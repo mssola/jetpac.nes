@@ -45,16 +45,48 @@
         rts
     .endproc
 
-    ;; Definitions for all the enemy types. These are just the tile IDs for each
-    ;; case. Note that some of them have $FF, which is because they span 2
-    ;; sprites instead of 4.
+    .proc allocate_sprite_y
+        ;; TODO
+        rts
+    .endproc
+
+    ;; Definitions for all the enemy types. An enemy type is defined by four
+    ;; bytes, containing the tile IDs for it. Some enemies only span 2 tiles,
+    ;; and because of this they have $FF as filler bytes. Last but not least,
+    ;; each enemy actually has two states in order to mock some inner movement.
+    ;; This is also handled here and this is why an enemy spans a whooping 8
+    ;; bytes of definition, which is fine because we have a lot of room to spare
+    ;; in ROM space.
 tiles:
+    ;; Asteroid
     .byte $26, $27, $36, $37
+    .byte $46, $47, $56, $57
+
+    ;; Furry thingie
     .byte $28, $29, $38, $39
+    .byte $48, $49, $58, $59
+
+    ;; Bubble
     .byte $24, $25, $34, $35
+    .byte $44, $45, $54, $55
+
+    ;; Fighter jet 1
     .byte $2A, $2B, $3A, $3B
+    .byte $2A, $2B, $3A, $3B
+
+    ;; Fighter jet 2
     .byte $31, $32, $FF, $FF
-    .byte $41, $42, $FF, $FF
+    .byte $31, $32, $FF, $FF
+
+    ;; UFO
+    .byte $40, $41, $FF, $FF
+    .byte $50, $51, $FF, $FF
+
+    ;; Cross
     .byte $2C, $2D, $3C, $3D
+    .byte $4C, $4D, $5C, $5D
+
+    ;; Weirdo
     .byte $2E, $2F, $3E, $3F
+    .byte $4E, $4F, $5E, $5F
 .endscope
