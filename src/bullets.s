@@ -18,7 +18,7 @@
     ;;                    bullet.
     ;;  2. Y coordinate.
     ;;  3. X coordinate.
-    zp_bullets_pool_base = $A0  ; asan:reserve $1E
+    zp_bullets_pool_base = $A0  ; asan:reserve BULLETS_POOL_CAPACITY_BYTES
 
     ;; The current amount of bullets on screen.
     zp_bullets_pool_size = $E0
