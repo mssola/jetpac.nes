@@ -65,7 +65,7 @@ else
 endif
 
 .PHONY: build
-build: gen-values build-full build-partial build-pal
+build: gen-values build-partial build-pal build-full
 
 .PHONY: build-full
 build-full:
