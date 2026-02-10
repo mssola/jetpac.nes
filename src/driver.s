@@ -258,21 +258,25 @@
         ;; iny
         ;; iny
 
+        ;; Allocate the rest of valid bullets from the pool.
         ldx #0
     @rest_o_bullets:
+        ;; If we are already passed the amount of bytes we could allocate for
+        ;; bullets, then jump to enemies. If the current indexed bullet is the one
+        ;; we allocated as the first fixed one, then skip it.
         cpx #Bullets::BULLETS_POOL_CAPACITY_BYTES
         beq @rest_o_enemies
         cpx zp_first_bullet
-        bne @do_bullet
-        inx
-        inx
-        inx
-        cpx #Bullets::BULLETS_POOL_CAPACITY_BYTES
-        beq @rest_o_enemies
+        beq @next_bullet
+
     @do_bullet:
+        ;; Ok, so the bullet has not been allocated yet and we have space for
+        ;; it. Is it valid?
         lda Bullets::zp_bullets_pool_base, x
         cmp #$FF
         beq @next_bullet
+
+        ;; Yes! Then allocate now.
 
         lda Bullets::zp_bullets_pool_base + 1, x
         sta OAM::m_sprites, y
