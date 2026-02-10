@@ -281,15 +281,15 @@ tiles:
 
     ;; Fighter jet 1
     .byte $2A, $2B, $3A, $3B
-    .byte $2A, $2B, $3A, $3B
+    .byte $4A, $4B, $5A, $5B
     .byte $2B, $2A, $3B, $3A
-    .byte $2B, $2A, $3B, $3A
+    .byte $4B, $4A, $5B, $5A
 
     ;; Fighter jet 2
     .byte $31, $32, $FF, $FF
-    .byte $31, $32, $FF, $FF
+    .byte $60, $61, $FF, $FF
     .byte $32, $31, $FF, $FF
-    .byte $32, $31, $FF, $FF
+    .byte $61, $60, $FF, $FF
 
     ;; UFO
     .byte $40, $41, $FF, $FF
