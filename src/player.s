@@ -74,12 +74,10 @@
 
     zp_screen_y          = $40
     zp_position_y        = $41  ; asan:reserve $02
-    zp_target_velocity_y = $43  ; TODO: needed?
     zp_velocity_y        = $44
 
     zp_screen_x          = $45
     zp_position_x        = $46  ; asan:reserve $02
-    zp_target_velocity_x = $48  ; TODO: needed?
     zp_velocity_x        = $49
 
     ;; Flags that manage the state of the player.
@@ -128,9 +126,7 @@
 
         ;; Reset velocity and walking counter.
         lda #0
-        sta zp_target_velocity_y
         sta zp_velocity_y
-        sta zp_target_velocity_x
         sta zp_velocity_x
         sta zp_walk_counter
 
