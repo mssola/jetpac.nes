@@ -16,7 +16,7 @@
     zp_tmp0 = $05
     zp_tmp1 = $06
     zp_tmp2 = $07
-    ;; zp_tmp3 = $08
+    zp_tmp3 = $08
 
     ;;;
     ;; Reserve a byte of memory for preserving indices on memory. This is needed

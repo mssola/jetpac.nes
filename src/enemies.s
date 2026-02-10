@@ -147,6 +147,12 @@
     ;; The 'y' register will be updated by increasing its value by 16,
     ;; indicating the amount of bytes allocated in OAM space.
     ;;
+    ;; The 'x' register will be changed, so make sure to back it up if you care
+    ;; about its value before calling this function.
+    ;;
+    ;; The 'Globals::zp_tmp0', 'Globals::zp_tmp1' and 'Globals::zp_tmp2' memory
+    ;; regions are also tampered by this function.
+    ;;
     ;; NOTE: this function assumes that the enemy is in a valid state. That's up
     ;; to the caller to check on this before calling this function.
     .proc allocate_x_y

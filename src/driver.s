@@ -163,7 +163,8 @@
 
     .proc sprite_cycling
         ;; The 'y' register will contain the index on OAM of the sprite to be
-        ;; allocated.
+        ;; allocated. Note that we skip the player as that is handled directly
+        ;; as we want to guarantee that the player never flickers.
         ldy #(Player::PLAYER_SPRITES_COUNT * 4)
 
         ;;;
@@ -308,9 +309,41 @@
         inx
         jmp @rest_o_bullets
 
+        ;; Allocate the rest of the valid enemies from the pool.
     @rest_o_enemies:
-        ;; TODO: rest of enemies
-        ;; TODO: rest of items
+        ldx #0
+    @rest_o_enemies_loop:
+        ;; If we are already passed the amount of bytes we could allocate for
+        ;; enemies, then jump to items. If the current indexed enemy is the one
+        ;; we allocated as the first fixed one, then skip it.
+        cpx #Enemies::ENEMIES_POOL_CAPACITY_BYTES
+        beq @rest_o_items
+        cpx zp_first_enemy
+        beq @next_enemy
+
+    @do_enemy:
+        ;; Ok, so the enemy has not been allocated yet and we have space for
+        ;; it. Is it valid?
+        lda Enemies::zp_enemies_pool_base, x
+        cmp #$FF
+        beq @next_enemy
+
+        ;; Yes! Then call the enemy allocator with the values we have now. Note
+        ;; that the 'y' register will be updated as desired, but the 'x'
+        ;; register will become bananas. Hence, save its value before calling
+        ;; and restore it back after the call.
+        stx Globals::zp_tmp3
+        jsr Enemies::allocate_x_y
+        ldx Globals::zp_tmp3
+
+    @next_enemy:
+        inx
+        inx
+        inx
+        jmp @rest_o_enemies_loop
+
+    @rest_o_items:
+        ;;; TODO
 
         ;; Are all spots already filled? As in, did the 'y' register wrap
         ;; around? If so, just go to the end.
