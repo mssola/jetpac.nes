@@ -156,6 +156,8 @@
     @do_update:
         jsr Player::update
         jsr Bullets::update
+        jsr Enemies::update
+
         __fallthrough__ sprite_cycling
     .endproc
 
@@ -229,16 +231,12 @@
         stx zp_first_enemy
         lda Enemies::zp_enemies_pool_base, x
 
-        ;; Is this a valid enemy?
+        ;; Is this a valid enemy? If so allocate it and 'Enemies::allocate_x_y'
+        ;; will be responsible for increasing the value of 'y' with the number
+        ;; of sprites allocated (i.e. 16).
         cmp #$FF
         beq @after_first_enemy
-
-        ;; Yes! Let's prepare the arguments an allocate an enemy.
-        lda Enemies::zp_enemies_pool_base + 1, x
-        sta Globals::zp_arg0
-        lda Enemies::zp_enemies_pool_base + 2, x
-        sta Globals::zp_arg1
-        jsr Enemies::allocate_sprite_y
+        jsr Enemies::allocate_x_y
 
     @after_first_enemy:
         ;; Increase the index for the enemies cycling. If wrapping is detected,

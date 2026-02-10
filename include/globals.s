@@ -15,7 +15,7 @@
     ;; so `zp_argX` variables are not overwritten as often.
     zp_tmp0 = $05
     zp_tmp1 = $06
-    ;; zp_tmp2 = $07
+    zp_tmp2 = $07
     ;; zp_tmp3 = $08
 
     ;;;
