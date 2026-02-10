@@ -3,9 +3,15 @@
 .scope Background
     ;; Screen coordinate on the Y axis where elements can begin to appear (e.g.
     ;; upper bound for new enemies, starting point for falling items, etc.).
+    ;;
+    ;; NOTE: if you change this value, you should re-generate the random values
+    ;; from prng.s as well.
     UPPER_MARGIN_Y_COORD = $1A
 
     ;; Screen coordinates on the Y axis for the ground.
+    ;;
+    ;; NOTE: if you change this value, you should re-generate the random values
+    ;; from prng.s as well.
     GROUND_Y_COORD = $C8
 
     ;; Returns whether the given tile position collides with a background
