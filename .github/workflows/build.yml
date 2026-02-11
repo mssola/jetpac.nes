@@ -16,7 +16,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies from Ubuntu sources
-        run: sudo apt-get install cc65 ruby
+        run: sudo apt-get install cc65
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 'ruby'
+
+      - name: Lint scripts on bin/
+        run: |
+            gem install rubocop
+            rubocop bin/ --format github
 
       - name: Main task
         run: V=1 make all

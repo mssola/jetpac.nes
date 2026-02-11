@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 ##
 # Generate the different values on `config/values/*.s` by parsing the values on
@@ -19,7 +20,8 @@ config = YAML.safe_load_file(File.join(config_path, 'values.yml'))
 # 4.4 format.
 def to_signed_fixed_point(value)
   integer = value.to_i
-  raise "bad signed fixed point value" if integer > 7 || integer < -7
+  raise 'bad signed fixed point value' if integer > 7 || integer < -7
+
   integer &= 0b00001111
 
   decimal = (value % 1) * 100
@@ -58,23 +60,21 @@ def to_hex(value)
 end
 
 def values_to_asm(values)
-  contents = ""
-  values.each { |k, v| contents << "    #{k} = #{to_hex(v)}\n" }
-  contents.rstrip
+  values.map { |k, v| "    #{k} = #{to_hex(v)}" }.join("\n")
 end
 
 res.each do |model, formats|
   path = File.join(config_path, "values/#{model}.s")
-  contents = <<HERE
-;; This file has been automatically generated via bin/values.rb.
-;; DO NOT MODIFY this file directly: check config/values.yml instead.
+  contents = <<~HERE
+    ;; This file has been automatically generated via bin/values.rb.
+    ;; DO NOT MODIFY this file directly: check config/values.yml instead.
 
-.ifdef PAL
-#{values_to_asm(formats[:pal])}
-.else
-#{values_to_asm(formats[:ntsc])}
-.endif
-HERE
+    .ifdef PAL
+    #{values_to_asm(formats[:pal])}
+    .else
+    #{values_to_asm(formats[:ntsc])}
+    .endif
+  HERE
 
-  File.open(path, 'w') { |f| f.write(contents) }
+  File.write(path, contents)
 end

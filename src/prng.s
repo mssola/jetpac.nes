@@ -23,6 +23,8 @@
 
 
 ;; The pre-computed table.
+;;
+;; NOTE: generated via bin/rand.rb; read more on this there.
 valid_y_rand_table:
     .byte $25, $87, $B7, $6A, $23, $77, $6D, $71, $6D, $B6, $86, $93, $2B, $97, $A8, $39
     .byte $26, $AE, $A6, $70, $9F, $2D, $74, $B2, $8E, $A5, $33, $3E, $6D, $75, $91, $6B
