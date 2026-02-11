@@ -24,9 +24,7 @@
         lda #.hibyte(main_screen)
         sta Globals::zp_arg1
         ldx #$28
-        jsr load_screen_x ;; TODO: jal
-
-        rts
+        __fallthrough__ load_screen_x
     .endproc
 
     ;; Load the 1KB worth of screen data located via the 16-bit pointer on

@@ -131,7 +131,7 @@
 
 @game_screen:
     jsr Driver::update
-    ;; NOTE: fallthrough
+    __fallthrough__ @set_flags
 
 @set_flags:
     lda #%10000000
