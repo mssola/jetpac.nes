@@ -1,5 +1,4 @@
 out/
 config/generated.s
-.nasm/
 TODO
 *.patch

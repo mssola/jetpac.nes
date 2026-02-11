@@ -21,11 +21,7 @@ CCOPTS ?= --target nes
 
 # Be strict when using xa65, and extra verbose if V=1.
 ifeq ($(CC65),xa65)
-ifeq ($(strip $(V)),)
-	CCOPTS += --strict
-else
 	CCOPTS += --strict --stats
-endif
 endif
 
 # Ruby is used to generate the files on `config/values/`. If it can't be found,
@@ -74,7 +70,7 @@ build-full:
 	$(Q) echo "LEVEL = $(LEVEL)" >> config/generated.s
 
 	$(E) "	CC	 jetpac (NTSC)"
-	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (NTSC).nes"
+	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (NTSC).nes" 1>/dev/null
 
 .PHONY: build-partial
 build-partial:
@@ -84,7 +80,7 @@ build-partial:
 	$(Q) echo "LEVEL = $(LEVEL)" >> config/generated.s
 
 	$(E) "	CC	 jetpac (partial)"
-	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (DEV).nes"
+	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (DEV).nes" 1>/dev/null
 
 .PHONY: build-pal
 build-pal:
@@ -94,4 +90,4 @@ build-pal:
 	$(Q) echo "LEVEL = $(LEVEL)" >> config/generated.s
 
 	$(E) "	CC	 jetpac (PAL)"
-	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (PAL).nes"
+	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (PAL).nes" 1>/dev/null
