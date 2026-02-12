@@ -759,12 +759,6 @@ tiles:
     .byte $45, $44, $55, $54
 
     ;; Fighter jet 1
-    .byte $2A, $2B, $3A, $3B
-    .byte $4A, $4B, $5A, $5B
-    .byte $2B, $2A, $3B, $3A
-    .byte $4B, $4A, $5B, $5A
-
-    ;; Fighter jet 2
     .byte $31, $32, $FF, $FF
     .byte $60, $61, $FF, $FF
     .byte $32, $31, $FF, $FF
@@ -781,6 +775,12 @@ tiles:
     .byte $4C, $4D, $5C, $5D
     .byte $2D, $2C, $3D, $3C
     .byte $4D, $4C, $5D, $5C
+
+    ;; Fighter jet 2
+    .byte $2A, $2B, $3A, $3B
+    .byte $4A, $4B, $5A, $5B
+    .byte $2B, $2A, $3B, $3A
+    .byte $4B, $4A, $5B, $5A
 
     ;; Weirdo
     .byte $2E, $2F, $3E, $3F
