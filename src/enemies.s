@@ -90,18 +90,39 @@
         lda movement_hi, x
         sta zp_enemy_movement_fn + 1
 
+        ;; TODO: rest of the enemies.
+        ;; TODO: there are ways to optimize this
         txa
-        beq @init_zero
+        beq @init_basic_1
+        cmp #1
+        beq @init_bounce_1
+        cmp #5
+        beq @init_bounce_2
+        cmp #6
+        beq @init_basic_2
 
-        ;; TODO: rest of the enemies. For now this is only true for the 'basic' movement.
+    @init_basic_1:
+        lda #1
+        sta Enemies::zp_enemy_arg
+        lda #FALLING_VELOCITY
+        bne @set
+    @init_basic_2:
         lda #2
         sta Enemies::zp_enemy_arg
         lda #FALLING_VELOCITY_FAST
         bne @set
-    @init_zero:
+    @init_bounce_1:
         lda #1
         sta Enemies::zp_enemy_arg
-        lda #FALLING_VELOCITY
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        jmp @set
+    @init_bounce_2:
+        lda #2
+        sta Enemies::zp_enemy_arg
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        __fallthrough__ @set
 
     @set:
         ;; The 'init_pool' wants an argument which is the 'extra' state to be
@@ -485,9 +506,183 @@
         rts
     .endproc
 
-    ;; Diagonal bouncing at a 45 degree angle. TODO: explain 'extra'.
+    ;; Diagonal bouncing at a 45 degree angle. The 'extra' state is a boolean
+    ;; which is set to 0 if moving upwards, and to 1 if moving downwards.
     .proc bounce
-        ;; TODO
+        ;; First of all, we always move enemies horizontally, while being
+        ;; mindful on the direction and the step depending on the enemy
+        ;; type. This is just the same as the 'basic' algorithm.
+        lda Enemies::zp_enemies_pool_base, x
+        and #$80
+        beq @move_left
+        lda Enemies::zp_enemies_pool_base + 2, x
+        clc
+        adc Enemies::zp_enemy_arg
+        jmp @do_vertical
+    @move_left:
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sec
+        sbc Enemies::zp_enemy_arg
+
+    @do_vertical:
+        ;; Set the previous computation regardless of the branch.
+        sta Enemies::zp_enemies_pool_base + 2, x
+
+        ;; The vertical movement works the same way, but taking into account its
+        ;; direction via the 'extra' state.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        beq @move_up
+        lda Enemies::zp_enemies_pool_base + 1, x
+        clc
+        adc Enemies::zp_enemy_arg
+        jmp @check_collision
+    @move_up:
+        lda Enemies::zp_enemies_pool_base + 1, x
+        sec
+        sbc Enemies::zp_enemy_arg
+
+    @check_collision:
+        ;; Set the previous computation regardless of the branch.
+        sta Enemies::zp_enemies_pool_base + 1, x
+
+        ;; Collision checking.
+
+        ;; Translate the Y axis into tile coordinates.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg0
+
+        ;; Translate the X axis into tile coordinates. We will also save it into
+        ;; 'Globals::zp_tmp0' as that will save us some trouble down the road.
+        lda Enemies::zp_enemies_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg1
+        sta Globals::zp_tmp0
+
+        ;; Does this upper left corner collide?
+        jsr Background::collides
+        bne @bounce_down
+
+        ;; No. Increment the X coordinate to the right corner and ask again.
+        inc Globals::zp_arg1
+        inc Globals::zp_arg1
+        jsr Background::collides
+        beq @check_front_or_bottom
+
+        ;; There was a (hopefully purely) upper collision!
+    @bounce_down:
+        ;; The previous 'Background::collides' call has tampered with the 'x'
+        ;; register. Load the proper value again.
+        ldx Enemies::zp_pool_index
+
+        ;; Flip 'extra' boolean.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        eor #1
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Move downwards once, which cancels the movement set at the beginning
+        ;; of the function.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        clc
+        adc Enemies::zp_enemy_arg
+        sta Enemies::zp_enemies_pool_base + 1, x
+
+        rts
+
+        ;; Now, depending on the level, the enemy might be the regular size or
+        ;; shorter. If it's on the shorter end, then move to check the bottom
+        ;; corners directly.
+    @check_front_or_bottom:
+        lda Globals::zp_level_kind
+        cmp #1
+        bne @check_bottom
+
+        ;; We are checking the "front" (center) of the enemy, which corresponds
+        ;; to the regular sized enemy. This means to increase the Y tile
+        ;; coordinate once.
+        inc Globals::zp_arg0
+
+        ;; Is the enemy moving left or right? This is relevant because the X
+        ;; tile coordinate is set to the right corner. If it's moving left, then
+        ;; we need to decrement it twice to move it back to the left corner.
+        ldx Enemies::zp_pool_index
+        lda Enemies::zp_enemies_pool_base, x
+        and #$80
+        bne @check_front_collision
+        dec Globals::zp_arg1
+        dec Globals::zp_arg1
+
+    @check_front_collision:
+        ;; Does it collide frontally?
+        jsr Background::collides
+        beq @check_bottom
+
+        ;; Yes! Restore the 'x' after the 'Background::collides' and use it to
+        ;; flip the direction where the enemy is headed.
+        ldx Enemies::zp_pool_index
+        lda Enemies::zp_enemies_pool_base, x
+        eor #$80
+        sta Enemies::zp_enemies_pool_base, x
+
+        ;; And bounce already to the new direction to avoid the enemy getting
+        ;; stucked or other weird situations.
+        and #$80
+        beq @bounce_left
+        lda Enemies::zp_enemies_pool_base + 2, x
+        clc
+        adc Enemies::zp_enemy_arg
+        jmp @set_bounce
+    @bounce_left:
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sec
+        sbc Enemies::zp_enemy_arg
+    @set_bounce:
+        sta Enemies::zp_enemies_pool_base + 2, x
+        rts
+
+        ;; Last but not least, let's see if the enemy collides on its bottom
+        ;; corners.
+    @check_bottom:
+        ;; Restore the X tile coordinate as the previous steps might have left
+        ;; it in an unknown state.
+        lda Globals::zp_tmp0
+        sta Globals::zp_arg1
+
+        ;; Increse the Y tile coordinate. Note that this is to be done
+        ;; regardless to the enemy type, in contrast to what we did when we were
+        ;; wondering about checking the front.
+        inc Globals::zp_arg0
+
+        ;; And check for a collision on the bottom left corner.
+        jsr Background::collides
+        bne @bounce_up
+
+        ;; Nope! Try again but with the bottom right corner.
+        inc Globals::zp_arg1
+        inc Globals::zp_arg1
+        jsr Background::collides
+        bne @bounce_up
+        rts
+
+        ;; There was a (hopefully purely) bottom collision!
+    @bounce_up:
+        ;; Restore the 'x' register from a previous 'Background::collides' call.
+        ldx Enemies::zp_pool_index
+
+        ;; Flip the 'extra' boolean.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        eor #1
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Make it bounce up.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        sec
+        sbc Enemies::zp_enemy_arg
+        sta Enemies::zp_enemies_pool_base + 1, x
 
         rts
     .endproc
