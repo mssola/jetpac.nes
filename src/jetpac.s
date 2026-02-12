@@ -36,6 +36,7 @@
 .include "../include/asm.s"
 .include "../include/joypad.s"
 .include "../include/globals.s"
+.include "../include/debug.s"
 
 .include "assets.s"
 .include "background.s"
@@ -45,7 +46,68 @@
 .include "enemies.s"
 .include "title.s"
 .include "driver.s"
-.include "vectors.s"
+.include "interrupts.s"
+
+;; Pretty standard reset function, nothing crazy.
+.proc reset
+    ;; Disable interrupts and decimal mode.
+    sei
+    cld
+
+    ;; Disable APU frame counter.
+    ldx #$40
+    stx APU::m_frame_counter
+
+    ;; Setup the stack.
+    ldx #$FF
+    txs
+
+    ;; Disable NMIs and the APU's DMC.
+    inx
+    stx PPU::m_control
+    stx PPU::m_mask
+    stx APU::m_dmc
+
+    ;; First PPU wait.
+    bit PPU::m_status
+@vblankwait1:
+    bit PPU::m_status
+    bpl @vblankwait1
+
+    ;; Initialize the counter for frame drops before any NMIs can come in.
+    .ifdef PARTIAL
+        lda #0
+        sta Debug::zp_frame_drops
+    .endif
+
+    ;; Reset all sprites by simply moving the Y coordinate out of screen.
+    lda #$EF
+    ldx #0
+@sprite_reset_loop:
+    sta OAM::m_sprites, x
+    inx
+    inx
+    inx
+    inx
+    bne @sprite_reset_loop
+
+    ;; DMA setup for sprite reset.
+    lda #$00
+    sta OAM::m_address
+    lda #$02
+    sta OAM::m_dma
+
+    ;; Second PPU wait. After that the PPU is stable.
+@vblankwait2:
+    bit PPU::m_status
+    bpl @vblankwait2
+
+    ;; NOTE: palettes are not initialized here as it's going to be one of the
+    ;; first things done on `main` code.
+
+    __fallthrough__ main
+.endproc
+
 
 .proc main
     ;; Disable the PPU and zero out variables which shadow PPU registers.
@@ -148,3 +210,6 @@
     ;; TODO: allow to start over, reset flags, control register, etc.
     jmp @over
 .endproc
+
+.segment "VECTORS"
+    .addr nmi, reset, irq
