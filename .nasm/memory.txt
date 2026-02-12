@@ -26,13 +26,15 @@ $46-$47: zp_position_x
 $49: zp_velocity_x
 $50: zp_state
 $51: zp_walk_counter
-$60-$68: zp_enemies_pool_base
+$60-$6B: zp_enemies_pool_base
 $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_bullets_pool_base
 $D0: zp_enemies_pool_size
 $D1: zp_enemy_tiles
 $D2-$D3: zp_enemy_movement_fn
+$D4: zp_pool_index
+$D5: zp_enemy_arg
 $E0: zp_bullets_pool_size
 $E1: zp_last_allocated_index
 $E2: zp_current_bullet_y
@@ -51,4 +53,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 335/2048 (16.36%)
+- Internal RAM: 340/2048 (16.60%)

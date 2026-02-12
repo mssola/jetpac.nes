@@ -3,7 +3,7 @@
 ;; Global variables used throughout the code base.
 .scope Globals
     ;;;
-    ;; Argument values reserved passing arguments to functions in memory.
+    ;; Argument values reserved for passing arguments to functions in memory.
     zp_arg0 = $00
     zp_arg1 = $01
     ;; zp_arg2 = $02

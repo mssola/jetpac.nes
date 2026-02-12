@@ -243,9 +243,7 @@
         ;; Increase the index for the enemies cycling. If wrapping is detected,
         ;; then it resets this value back to zero.
         ldx zp_first_enemy
-        inx
-        inx
-        inx
+        NEXT_ENEMY_INDEX_X
         cpx #Enemies::ENEMIES_POOL_CAPACITY_BYTES
         bne @set_next_enemies_cycle
         ldx #0
@@ -341,9 +339,7 @@
         ldx Globals::zp_tmp3
 
     @next_enemy:
-        inx
-        inx
-        inx
+        NEXT_ENEMY_INDEX_X
         jmp @rest_o_enemies_loop
 
     @rest_o_items:

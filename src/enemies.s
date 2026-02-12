@@ -1,17 +1,29 @@
 .segment "CODE"
 
+;; Assuming that the 'x' register indexes an enemy on its pool, increment the
+;; register as many times as to point to the next one. Bound checking is not
+;; performed, it's up to the caller to implement that.
+.macro NEXT_ENEMY_INDEX_X
+    inx
+    inx
+    inx
+    inx
+.endmacro
+
 .scope Enemies
     ;; Maximum amount of enemies allowed on screen at the same time.
     ENEMIES_POOL_CAPACITY = 3
 
     ;; The capacity of the enemies pool in bytes.
-    ENEMIES_POOL_CAPACITY_BYTES = ENEMIES_POOL_CAPACITY * 3
+    ENEMIES_POOL_CAPACITY_BYTES = ENEMIES_POOL_CAPACITY * 4
 
+    ;; Initial X coordinates for enemies depending on if they appear on the
+    ;; left/right edge of the screen.
     ENEMIES_INITIAL_X       = $F0
     ENEMIES_INITIAL_X_RIGHT = $10
 
     ;; Base address for the pool of enemies used on this game. The pool has
-    ;; #ENEMIES_POOL_CAPACITY capacity of enemy objects where each one is 3
+    ;; #ENEMIES_POOL_CAPACITY capacity of enemy objects where each one is 4
     ;; bytes long:
     ;;  1. State: which can have two formats:
     ;;     - $FF: the enemy is not active.
@@ -21,10 +33,13 @@
     ;;                    from an enemy sprite and, in fact, is initialized at
     ;;                    random. This counter is split in two phases depending
     ;;                    on the value of I. If I=0, then the enemy is at its
-    ;;                    first inner movement state; and if I=1, then the
-    ;;                    enemy is at the other inner movement state.
+    ;;                    first inner movement state; and if I=1, then the enemy
+    ;;                    is at the other inner movement state. Last but not
+    ;;                    least, if D=1 and I=1, then the counter never reaches
+    ;;                    the limit, as that would make the value $FF (inactive).
     ;;  2. Y coordinate.
     ;;  3. X coordinate.
+    ;;  4. 'extra' state: depends on the enemy type.
     zp_enemies_pool_base = $60  ; asan:reserve ENEMIES_POOL_CAPACITY_BYTES
 
     ;; The current size of active enemies. That is, one thing is the capacity of
@@ -35,8 +50,71 @@
     ;; row or the other for a given enemy is to be decided by its current state.
     zp_enemy_tiles = $D1
 
-    ;; Initializes the enemy pool for this game.
+    ;; Pointer to the function that handles movement for the current enemy
+    ;; type. Using a function pointer is a bit tricky on the humble 6502's
+    ;; architecture, as you need to do indirect jumps with possible optimisation
+    ;; tricks along the way. But there are really too many different enemy
+    ;; algorithms that a plain if-else + jsr code flow would be too expensive
+    ;; and harder to read.
+    zp_enemy_movement_fn = $D2  ; asan:reserve $02
+
+    ;; Preserves the index on 'zp_enemies_pool_base' for a given enemy inside of
+    ;; the movement handler. Check the documentation on movement handlers.
+    zp_pool_index = $D4
+
+    ;; An extra argument that enemies can have depending on their type. This is
+    ;; useful for different waves with the same algorithm but different speeds.
+    zp_enemy_arg = $D5
+
+    ;; Values for the counter of enemies that fall.
+    FALLING_VELOCITY      = HZ / 10
+    FALLING_VELOCITY_FAST = FALLING_VELOCITY / 2
+
+    ;; Initializes all the enemies for the current level. That is, it prepares
+    ;; all the movement handlers, the enemy tiles to be used, and initializes
+    ;; the pool of objects for it.
     .proc init
+        lda Globals::zp_level_kind
+        tax
+
+        ;; Pick the right index for this type.
+        asl
+        asl
+        asl
+        asl
+        sta zp_enemy_tiles
+
+        ;; And set the movement function for this type.
+        lda movement_lo, x
+        sta zp_enemy_movement_fn
+        lda movement_hi, x
+        sta zp_enemy_movement_fn + 1
+
+        txa
+        beq @init_zero
+
+        ;; TODO: rest of the enemies. For now this is only true for the 'basic' movement.
+        lda #2
+        sta Enemies::zp_enemy_arg
+        lda #FALLING_VELOCITY_FAST
+        bne @set
+    @init_zero:
+        lda #1
+        sta Enemies::zp_enemy_arg
+        lda #FALLING_VELOCITY
+
+    @set:
+        ;; The 'init_pool' wants an argument which is the 'extra' state to be
+        ;; set up for all enemies of the pool.
+        sta Globals::zp_arg0
+
+        __fallthrough__ init_pool
+    .endproc
+
+    ;; Initializes the enemy pool for this game. It requires an argument to be
+    ;; passed in 'Globals::zp_arg0' which contains the 'extra' state to be
+    ;; passed to all enemies of the pool.
+    .proc init_pool
         ldx #0
 
         ldy #ENEMIES_POOL_CAPACITY
@@ -66,6 +144,12 @@
     @set_x_position:
         sta zp_enemies_pool_base, x
 
+        ;; And set the 'extra' state as passed down by the 'init' function.
+        inx
+        lda Globals::zp_arg0
+        sta zp_enemies_pool_base, x
+
+        ;; Next enemy!
         inx
         dey
         bne @enemies_init_loop
@@ -74,21 +158,6 @@
         lda #ENEMIES_POOL_CAPACITY
         sta zp_enemies_pool_size
 
-        __fallthrough__ init_enemy_type
-    .endproc
-
-    ;; Initialize the enemy type. That is, define the contents of the
-    ;; `zp_enemy_tiles` based on the current level kind, as well as the function
-    ;; handler for it.
-    .proc init_enemy_type
-        lda Globals::zp_level_kind
-        asl
-        asl
-        asl
-        asl
-        sta zp_enemy_tiles
-
-        ;; TODO: function pointer.
         rts
     .endproc
 
@@ -98,20 +167,30 @@
     ;; 'Bullets::update' already accounts for it and we assume that it ran
     ;; before this one.
     .proc update
-        ldx #253
+        ldx #252
+
+        ;; The loop index will be moved out of the 'y' register since movement
+        ;; handlers might need to use it.
         ldy zp_enemies_pool_size
+        sty Globals::zp_idx
+
+        ;; In the (unlikely) case that there are no enemies left, just skip
+        ;; 'update' altogether.
+        bne @loop
+        rts
 
     @loop:
         ;; Move the 'x' register to the current enemy for this iteration.
-        inx
-        inx
-        inx
+        NEXT_ENEMY_INDEX_X
 
-        ;; Is the current enemy marked as invalid? If so just move to the next
-        ;; one.
+        ;; Is the current enemy marked as invalid? If so just skip it. Note that
+        ;; we don't even go to the '@next' down below, as that would decrease
+        ;; the loop counter and this loop only cares about active
+        ;; enemies. Having an enemy in the middle of the pool invalid is totally
+        ;; valid as it could have died before assigning a new one.
         lda zp_enemies_pool_base, x
         cmp #$FF
-        beq @next
+        beq @loop
 
         ;; If its movement state is already at the maximum, reset it, otherwise
         ;; increase it by 1. Note that we compare with $7E instead of $7F
@@ -125,17 +204,56 @@
         cmp #$7E
         beq @reset
         inc zp_enemies_pool_base, x
-        bne @next
+        bne @move
     @reset:
         lda Globals::zp_tmp0
         and #$80
         sta zp_enemies_pool_base, x
 
-        ;; TODO: collision with background & player.
+    @move:
+        ;; Store the index to the current enemy.
+        stx Enemies::zp_pool_index
+
+        ;; Jump to the movement handler for the current enemy. As to why this
+        ;; needs to be in a function pointer, refer to
+        ;; 'zp_enemy_movement_fn'. Note that this could've been done in other
+        ;; ways. Here we fake a 'jsr' by pushing the address to return into the
+        ;; stack (-1 to account for the 'rts' behavior of adding +1 to the PC),
+        ;; and then calling the function pointed by 'zp_enemy_movement_fn'. Then
+        ;; this function can act as usual and perform an 'rts' at the end.
+        ;;
+        ;; Since the return address is always the same, maybe the movement
+        ;; handler could've done a 'jmp <fixed address>', but that would mean to
+        ;; know the exact address for '@return_from_movement_handler', and that
+        ;; would mean to move everything out of .proc and .scope. That would be
+        ;; my way to go if performance was paramount at this point, as it would
+        ;; save: (2 x lda's: 4 cycles; 2 x pha's: 6 cycles; 1 x rts: 6 cycles) =
+        ;; 16 cycles - indirect jump from handler (5 cycles). Hence 11 cycles of
+        ;; performance gain per iteration. We are not at the point of requiring
+        ;; these cycles for now and, given the luxury, I take readability first.
+        ;;
+        ;; Another approach would be to introduce a "trampoline" function, but
+        ;; that would be the same as here plus an extra 'jsr' to the trampoline
+        ;; (and an extra cycle considering that the 'rts' at the trampoline is
+        ;; slower than an indirect 'jmp'). Another approach would've been the
+        ;; "rts trick", but I feel that it's only useful at the tail of a
+        ;; function, and this whole ordeal is happening inside of a loop, so we
+        ;; don't want to break it just yet.
+        lda #.hibyte(@return_from_movement_handler - 1)
+        pha
+        lda #.lobyte(@return_from_movement_handler - 1)
+        pha
+        jmp (zp_enemy_movement_fn)
+
+    @return_from_movement_handler:
+        ;; Restore the value from the 'x' register.
+        ldx Enemies::zp_pool_index
+
+        ;; TODO: collision with player
 
     @next:
         ;; Any more enemies left?
-        dey
+        dec Globals::zp_idx
         bne @loop
 
         rts
@@ -242,9 +360,175 @@
         rts
     .endproc
 
-    ;; Definitions for all the enemy types. An enemy type is defined by four
-    ;; bytes, containing the tile IDs for it. Some enemies only span 2 tiles,
-    ;; and because of this they have $FF as filler bytes.
+    ;; The enemy has been set to dust, remove it.
+    .proc bite_the_dust
+        dec Enemies::zp_enemies_pool_size
+
+        ;; TODO: this assumes we are coming from within Enemies always. What
+        ;; about impacting bullets?
+        ldx Enemies::zp_pool_index
+
+        ;; TODO: cloud animation and all that.
+        lda #$FF
+        sta Enemies::zp_enemies_pool_base, x
+
+        rts
+    .endproc
+
+    ;;;
+    ;; Movement handlers.
+    ;;
+    ;; Each enemy type has a function assigned to it as to how to move. These
+    ;; functions are stored in the 'movement_lo' and 'movement_hi' ROM addresses
+    ;; and they are used via the 'zp_enemy_movement_fn' function
+    ;; pointer. Movement handlers are free to use any register and any memory
+    ;; location, as that's handled by the caller.
+    ;;
+    ;; Collision only needs to be checked with platforms, as each handler might
+    ;; have a different take on that scenario. Collision with bullets are
+    ;; handled in the Bullets scope, and with the player is handled by the
+    ;; caller.
+    ;;
+    ;; All handlers receive 'Enemies::zp_pool_index' which contain the index to the
+    ;; 'Enemy::zp_enemies_pool_base' array of the current enemy. This argument
+    ;; is expected to be _immutable_; if you want to abuse the 'x' register, you
+    ;; are free to do so. For other arguments handlers are expected to abuse on
+    ;; the 'extra' state that is available for each enemy.
+
+    ;; Basic falling movement. Straight horizontal movement with a slight
+    ;; downward angle. Enemy should explode on platform/ground contact. The
+    ;; 'extra' state is used as a counter for the falling velocity (i.e. enemy
+    ;; falls 1 pixel per counter exhaustion).
+    .proc basic
+        ;; First of all, we always move enemies horizontally, while being
+        ;; mindful on the direction and the step depending on the enemy type.
+        lda Enemies::zp_enemies_pool_base, x
+        and #$80
+        beq @move_left
+        lda Enemies::zp_enemies_pool_base + 2, x
+        clc
+        adc Enemies::zp_enemy_arg
+        sta Enemies::zp_enemies_pool_base + 2, x
+        jmp @do_counter
+    @move_left:
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sec
+        sbc Enemies::zp_enemy_arg
+        sta Enemies::zp_enemies_pool_base + 2, x
+
+        ;; Decrement the counter from the 'extra' state. If it reaches zero,
+        ;; then we should do some downward movement. Otherwise we just go to
+        ;; collision checking.
+    @do_counter:
+        lda Enemies::zp_enemies_pool_base + 3, x
+        sec
+        sbc #1
+        bne @update_extra_state
+
+        ;; Move downwards and reset the 'extra' state depending on the enemy
+        ;; kind.
+    @downward:
+        inc Enemies::zp_enemies_pool_base + 1, x
+
+        lda Globals::zp_level_kind
+        beq @init_zero
+        lda #FALLING_VELOCITY_FAST
+        bne @update_extra_state
+    @init_zero:
+        lda #FALLING_VELOCITY
+
+    @update_extra_state:
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Check collisions with the background.
+
+        ;; Remember that background checks are done in tile coordinates, not
+        ;; screen ones. So we have to do the translation to it (3 x
+        ;; 'lsr'). After that, for the X coordinate, depending if the enemy is
+        ;; facing left/right, we have to increment this coordinate (i.e. twice
+        ;; if facing right as an enemy of this type is always 2x2 sprites).
+        lda Enemies::zp_enemies_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        tay
+        lda Enemies::zp_enemies_pool_base, x
+        and #$80
+        beq @after_x
+        iny
+        iny
+    @after_x:
+        sty Globals::zp_arg1
+
+        ;; Translate the Y coordinate into tile ones.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg0
+
+        ;; Perform a collision check with the upper boundary.
+        jsr Background::collides
+        beq @check_down
+        JAL bite_the_dust
+
+    @check_down:
+        ;; If that failed, then increment the vertical tile coordinate twice to
+        ;; get the bottom boundary and check again.
+        inc Globals::zp_arg0
+        inc Globals::zp_arg0
+        jsr Background::collides
+        beq @end
+        JAL bite_the_dust
+
+    @end:
+        rts
+    .endproc
+
+    ;; Diagonal bouncing at a 45 degree angle. TODO: explain 'extra'.
+    .proc bounce
+        ;; TODO
+
+        rts
+    .endproc
+
+    ;; Erratic diagonal bouncing like 'bounce', meaning that vertically the go
+    ;; up and down at random, not in a predictable manner.
+    .proc erratic
+        ;; TODO
+
+        rts
+    .endproc
+
+    ;; Track the player's current Y position and homes at it when the Y position
+    ;; matches that of the player.
+    .proc homing
+        ;; TODO
+
+        rts
+    .endproc
+
+    ;; Simply chases the player. TODO: explain 'extra'.
+    .proc chase
+        ;; TODO
+
+        rts
+    .endproc
+
+    ;; Function pointers to movement handlers.
+movement_lo:
+    .byte <basic, <bounce, <erratic, <homing
+    .byte <chase, <bounce, <basic, <chase
+movement_hi:
+    .byte >basic, >bounce, >erratic, >homing
+    .byte >chase, >bounce, >basic, >chase
+
+    ;;;
+    ;; Definitions for all the enemy types.
+    ;;
+    ;; An enemy type is defined by four bytes, containing the tile IDs for
+    ;; it. Some enemies only span 2 tiles, and because of this they have $FF as
+    ;; filler bytes.
     ;;
     ;; Moreover, each enemy has two states in order to show some inner
     ;; movement. This is why each enemy has an extra row of tile IDs, which

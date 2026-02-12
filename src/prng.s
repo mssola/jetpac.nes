@@ -12,6 +12,8 @@
     ;; Updates the 'a' register with the next random number set after the
     ;; current value of `zp_rand`, while also making sure that it is a valid
     ;; screen Y coordinate.
+    ;;
+    ;; NOTE: the 'y' register is preserved.
     .proc random_valid_y_coordinate
         ;; Get the new random number and store it right away.
         ldx zp_rand
