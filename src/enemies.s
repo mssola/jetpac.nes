@@ -96,6 +96,8 @@
         beq @init_basic_1
         cmp #1
         beq @init_bounce_1
+        cmp #2
+        beq @init_erratic
         cmp #5
         beq @init_bounce_2
         cmp #6
@@ -111,6 +113,12 @@
         sta Enemies::zp_enemy_arg
         lda #FALLING_VELOCITY_FAST
         bne @set
+    @init_erratic:
+        lda #1
+        sta Enemies::zp_enemy_arg
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        jmp @set
     @init_bounce_1:
         lda #1
         sta Enemies::zp_enemy_arg
@@ -529,8 +537,11 @@
         sta Enemies::zp_enemies_pool_base + 2, x
 
         ;; The vertical movement works the same way, but taking into account its
-        ;; direction via the 'extra' state.
+        ;; direction via the 'extra' state. Note that we mask it, which is not
+        ;; needed for the main enemies which use this algorithm, but it is for
+        ;; the 'erratic' algorithm which re-uses this one.
         lda Enemies::zp_enemies_pool_base + 3, x
+        and #$01
         beq @move_up
         lda Enemies::zp_enemies_pool_base + 1, x
         clc
@@ -598,9 +609,12 @@
         ;; corners directly.
     @check_front_or_bottom:
         lda Globals::zp_level_kind
+        cmp #2
+        beq @prepare_check_front_collision
         cmp #1
         bne @check_bottom
 
+    @prepare_check_front_collision:
         ;; We are checking the "front" (center) of the enemy, which corresponds
         ;; to the regular sized enemy. This means to increase the Y tile
         ;; coordinate once.
@@ -687,11 +701,166 @@
         rts
     .endproc
 
-    ;; Erratic diagonal bouncing like 'bounce', meaning that vertically the go
-    ;; up and down at random, not in a predictable manner.
+    ;; Erratic movement, which sometimes stops, sometimes moves horizontally,
+    ;; and some other times it goes diagonally; all at random. The 'extra' state
+    ;; is laid out as follows:
+    ;;
+    ;;   |TTTT -AAD|; where:
+    ;;   |
+    ;;   |-  D: downwards if 1; upwards if 0 (just like the 'diagonal' algorithm).
+    ;;   |- AA: current algorithm: 00/11: stop; 01: horizontal; 10: diagonal.
+    ;;   |-  T: timer for algorithm. Whenever it reaches zero the algorithm is changed.
+    ;;
     .proc erratic
-        ;; TODO
+        ;; Check the timer.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        and #$F0
+        bne @do
 
+        ;; The 'extra' state has to change. In order to do this we prepare an
+        ;; "or" mask that will be paired to the change of the algorithm in the
+        ;; following code block. Not that this mask is shifted to the right, as
+        ;; the end computation will finally shift it left once. This mask is
+        ;; responsible for initializing the timer to 1, and the algorithm to 1
+        ;; if we are coming from a "stop" phase (i.e. we want to guarantee that
+        ;; the next state is not "stop" again).
+        lda Enemies::zp_enemies_pool_base + 3, x
+        ldx #$08
+        and #%00000110
+        bne @after_unpause
+        inx
+    @after_unpause:
+        stx Globals::zp_tmp0
+
+        ;; Pick a random value and mask it to get the possible algorithms. If
+        ;; the algorithm is "stop" and we were already coming from that phase,
+        ;; the mask we prepared in the temporary value will take care of at
+        ;; least going into another state.
+        jsr Prng::random_valid_y_coordinate
+        and #$03
+        ora Globals::zp_tmp0
+        asl
+        sta Globals::zp_tmp0
+
+        ;; Restore the 'x' register from the previous
+        ;; 'Prng::random_valid_y_coordinate' call.
+        ldx Enemies::zp_pool_index
+
+        ;; The previous temporary value missed the D bit. Let's add it now and
+        ;; store it.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        and #$01
+        clc
+        adc Globals::zp_tmp0
+        sta Enemies::zp_enemies_pool_base + 3, x
+        jmp @end
+
+    @do:
+        ;; Blindly increase the timer as overflows will be covered when entering
+        ;; this function.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        clc
+        adc #$10
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Now switch what to do depending on the algorithm.
+        and #%00000110
+        beq @end
+        cmp #%00000110
+        beq @end
+        and #%00000100
+        beq @horizontal
+
+        ;; For the diagonal algorithm simply call the one we've got which
+        ;; shouldn't mess with our 'extra' state from this one.
+        JAL bounce
+
+    @horizontal:
+        ;; The 'y' register is used as a way to increment the X tile coordinates
+        ;; during collision checking. Since we have to know the direction first
+        ;; of all, we can take advantage of it and increment it whenever we are
+        ;; moving right.
+        ldy #0
+
+        ;; Plain old horizontal movement as it's done in other places.
+        lda Enemies::zp_enemies_pool_base, x
+        and #$80
+        beq @move_left
+        iny
+        iny
+        lda Enemies::zp_enemies_pool_base + 2, x
+        clc
+        adc Enemies::zp_enemy_arg
+        jmp @set_horizontal
+    @move_left:
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sec
+        sbc Enemies::zp_enemy_arg
+    @set_horizontal:
+        sta Enemies::zp_enemies_pool_base + 2, x
+
+        ;; We store in a temporary value how much the X tile coordinates will
+        ;; have to be increased in order to point to the right face.
+        sty Globals::zp_tmp0
+
+        ;; After that has been done, check for collision.
+
+        ;; Translate the Y axis into tile coordinates.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg0
+
+        ;; Translate the X axis into tile coordinates, while adding the facing
+        ;; value we computed earlier.
+        lda Enemies::zp_enemies_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        clc
+        adc Globals::zp_tmp0
+        sta Globals::zp_arg1
+
+        ;; Top.
+        jsr Background::collides
+        bne @horizontal_collision
+
+        ;; Center.
+        inc Globals::zp_arg0
+        jsr Background::collides
+        bne @horizontal_collision
+
+        ;; Bottom.
+        inc Globals::zp_arg0
+        jsr Background::collides
+        beq @end
+
+    @horizontal_collision:
+        ;; Restore the 'x' register from a previous 'Background::collides' call.
+        ldx Enemies::zp_pool_index
+
+        ;; Flip the direction bit.
+        lda Enemies::zp_enemies_pool_base, x
+        eor #$80
+        sta Enemies::zp_enemies_pool_base, x
+
+        ;; And bounce already to the new direction to avoid the enemy getting
+        ;; stucked or other weird situations.
+        and #$80
+        beq @bounce_left
+        lda Enemies::zp_enemies_pool_base + 2, x
+        clc
+        adc Enemies::zp_enemy_arg
+        jmp @set_bounce
+    @bounce_left:
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sec
+        sbc Enemies::zp_enemy_arg
+    @set_bounce:
+        sta Enemies::zp_enemies_pool_base + 2, x
+
+    @end:
         rts
     .endproc
 
