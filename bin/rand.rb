@@ -10,9 +10,10 @@
 # Whenever you update values on background.s, you are supposed to call this
 # script again and replace the values on 'valid_y_rand_table' in prng.s.
 
-# See values on background.s
-UPPER_MARGIN_Y_COORD = 0x1A
-GROUND_Y_COORD = 0xC8 - 32 # NOTE: As in background.s - twice the size of the enemy.
+# See values on background.s. They are the same +/- some margin so enemies are
+# not right on the border.
+UPPER_MARGIN_Y_COORD = 0x1A + 32
+GROUND_Y_COORD = 0xC8 - 64
 
 # The available values for the Y axis for enemies are above ground, below the
 # sky, and avoiding the left-most and right-most platforms.
