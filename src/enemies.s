@@ -146,7 +146,10 @@
     .proc init_pool
         ldx #0
 
+        ;; The initial size of the pool is its whole capacity.
         ldy #ENEMIES_POOL_CAPACITY
+        sty zp_enemies_pool_size
+
     @enemies_init_loop:
         ;; The state is set at random.
         stx Globals::zp_tmp0
@@ -182,10 +185,6 @@
         inx
         dey
         bne @enemies_init_loop
-
-        ;; The initial size of the pool is its whole capacity.
-        lda #ENEMIES_POOL_CAPACITY
-        sta zp_enemies_pool_size
 
         rts
     .endproc
