@@ -67,8 +67,10 @@
     zp_enemy_arg = $D5
 
     ;; Values for the counter of enemies that fall.
-    FALLING_VELOCITY      = HZ / 10
-    FALLING_VELOCITY_FAST = FALLING_VELOCITY / 2
+    FALLING_VELOCITY_0 = HZ / 5
+    FALLING_VELOCITY_1 = HZ / 10
+    FALLING_VELOCITY_2 = HZ / 25
+    FALLING_VELOCITY_3 = HZ / 50
 
     ;; Initializes all the enemies for the current level. That is, it prepares
     ;; all the movement handlers, the enemy tiles to be used, and initializes
@@ -93,7 +95,7 @@
         ;; TODO: rest of the enemies.
         ;; TODO: there are ways to optimize this
         txa
-        beq @init_basic_1
+        beq @init_basic
         cmp #1
         beq @init_bounce_1
         cmp #2
@@ -103,17 +105,14 @@
         cmp #5
         beq @init_bounce_2
         cmp #6
-        beq @init_basic_2
+        __fallthrough__ @init_basic
 
-    @init_basic_1:
+    @init_basic:
         lda #1
         sta Enemies::zp_enemy_arg
-        lda #FALLING_VELOCITY
-        bne @set
-    @init_basic_2:
-        lda #2
-        sta Enemies::zp_enemy_arg
-        lda #FALLING_VELOCITY_FAST
+        jsr Prng::random_valid_y_coordinate
+        and #$0F
+        ora #$11
         bne @set
     @init_erratic:
         lda #1
@@ -434,12 +433,14 @@
 
     ;; Basic falling movement. Straight horizontal movement with a slight
     ;; downward angle. Enemy should explode on platform/ground contact. The
-    ;; 'extra' state is used as a counter for the falling velocity (i.e. enemy
-    ;; falls 1 pixel per counter exhaustion).
-    ;; TODO: extra |TTTT KK-D|
-    ;;   timer
-    ;;   kind of movement
-    ;;   downwards/upwards
+    ;; 'extra' state is defined as follows:
+    ;;
+    ;;   |TTTT KK-D|; where:
+    ;;   |
+    ;;   |- D: downwards if 1; upwards if 0 (just like the 'diagonal' algorithm).
+    ;;   |- K: movement kind (see the constants FALLING_VELOCITY_*).
+    ;;   |- T: timer. Whenever it reaches zero, then a vertical movement is done.
+    ;;
     .proc basic
         ;; First of all, we always move enemies horizontally, while being
         ;; mindful on the direction and the step depending on the enemy type.
@@ -462,23 +463,44 @@
         ;; collision checking.
     @do_counter:
         lda Enemies::zp_enemies_pool_base + 3, x
+        tay
         sec
-        sbc #1
+        sbc #$10
+        and #$F0
         bne @update_extra_state
 
         ;; Move downwards and reset the 'extra' state depending on the enemy
         ;; kind.
-    @downward:
         inc Enemies::zp_enemies_pool_base + 1, x
 
-        lda Globals::zp_level_kind
+        ;; Yes, doing an index on a pre-computed ROM table would've been faster,
+        ;; but I need the 'x' register and I didn't feel like doing funny
+        ;; dances when it's not so bad.
+        tya
+        and #$0C
         beq @init_zero
-        lda #FALLING_VELOCITY_FAST
+        cmp #$04
+        beq @init_one
+        cmp #$08
+        beq @init_two
+        lda #(FALLING_VELOCITY_3 << 4)
         bne @update_extra_state
     @init_zero:
-        lda #FALLING_VELOCITY
+        lda #(FALLING_VELOCITY_0 << 4)
+        bne @update_extra_state
+    @init_one:
+        lda #(FALLING_VELOCITY_1 << 4)
+        bne @update_extra_state
+    @init_two:
+        lda #(FALLING_VELOCITY_2 << 4)
 
     @update_extra_state:
+        ;; Save the new timer into a temporary value, mask out the high byte
+        ;; from the original value, and then merge the values.
+        sta Globals::zp_tmp0
+        tya
+        and #$0F
+        ora Globals::zp_tmp0
         sta Enemies::zp_enemies_pool_base + 3, x
 
         ;; Check collisions with the background.
