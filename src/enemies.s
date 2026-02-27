@@ -92,58 +92,15 @@
         lda movement_hi, x
         sta zp_enemy_movement_fn + 1
 
-        ;; TODO: rest of the enemies.
-        ;; TODO: there are ways to optimize this
+        ;; Initialize the enemy arg, which is always 1 except for homing
+        ;; attacks.
+        ldy #1
         txa
-        beq @init_basic
-        cmp #1
-        beq @init_bounce_1
-        cmp #2
-        beq @init_erratic
         cmp #3
-        beq @init_homing
-        cmp #5
-        beq @init_bounce_2
-        cmp #6
-        __fallthrough__ @init_basic
-
-    @init_basic:
-        lda #1
-        sta Enemies::zp_enemy_arg
-        jsr Prng::random_valid_y_coordinate
-        and #$0F
-        ora #$11
-        bne @set
-    @init_erratic:
-        lda #1
-        sta Enemies::zp_enemy_arg
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        jmp @set
-    @init_homing:
-        lda #1
-        sta Enemies::zp_enemy_arg
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        ora #$10
-        jmp @set
-    @init_bounce_1:
-        lda #1
-        sta Enemies::zp_enemy_arg
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        jmp @set
-    @init_bounce_2:
-        lda #2
-        sta Enemies::zp_enemy_arg
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        __fallthrough__ @set
-
-    @set:
-        ;; The 'init_pool' wants an argument which is the 'extra' state to be
-        ;; set up for all enemies of the pool.
-        sta Globals::zp_arg0
+        bne @set_enemy_arg
+        iny
+    @set_enemy_arg:
+        sty Enemies::zp_enemy_arg
 
         __fallthrough__ init_pool
     .endproc
@@ -185,8 +142,10 @@
         sta zp_enemies_pool_base, x
 
         ;; And set the 'extra' state as passed down by the 'init' function.
+        stx Globals::zp_tmp0
+        jsr generate_extra
+        ldx Globals::zp_tmp0
         inx
-        lda Globals::zp_arg0
         sta zp_enemies_pool_base, x
 
         ;; Next enemy!
@@ -194,6 +153,49 @@
         dey
         bne @enemies_init_loop
 
+        rts
+    .endproc
+
+    ;; Generate a value for the 'extra' value depending on the current level
+    ;; kind. The result is left in 'a'.
+    ;;
+    ;; NOTE: the 'x' register is touched, while the 'y' register is not.
+    .proc generate_extra
+        ;; TODO: rest of the enemies.
+        lda Globals::zp_level_kind
+        beq @init_basic
+        cmp #1
+        beq @init_bounce_1
+        cmp #2
+        beq @init_erratic
+        cmp #3
+        beq @init_homing
+        cmp #5
+        beq @init_bounce_2
+        cmp #6
+        __fallthrough__ @init_basic
+
+    @init_basic:
+        jsr Prng::random_valid_y_coordinate
+        and #$0F
+        ora #$11
+        rts
+    @init_erratic:
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        rts
+    @init_homing:
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        ora #$10
+        rts
+    @init_bounce_1:
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        rts
+    @init_bounce_2:
+        jsr Prng::random_valid_y_coordinate
+        and #$01
         rts
     .endproc
 
