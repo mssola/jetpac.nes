@@ -98,6 +98,8 @@
         beq @init_bounce_1
         cmp #2
         beq @init_erratic
+        cmp #3
+        beq @init_homing
         cmp #5
         beq @init_bounce_2
         cmp #6
@@ -118,6 +120,13 @@
         sta Enemies::zp_enemy_arg
         jsr Prng::random_valid_y_coordinate
         and #$01
+        jmp @set
+    @init_homing:
+        lda #1
+        sta Enemies::zp_enemy_arg
+        jsr Prng::random_valid_y_coordinate
+        and #$01
+        ora #$10
         jmp @set
     @init_bounce_1:
         lda #1
@@ -427,6 +436,10 @@
     ;; downward angle. Enemy should explode on platform/ground contact. The
     ;; 'extra' state is used as a counter for the falling velocity (i.e. enemy
     ;; falls 1 pixel per counter exhaustion).
+    ;; TODO: extra |TTTT KK-D|
+    ;;   timer
+    ;;   kind of movement
+    ;;   downwards/upwards
     .proc basic
         ;; First of all, we always move enemies horizontally, while being
         ;; mindful on the direction and the step depending on the enemy type.
@@ -864,10 +877,114 @@
     .endproc
 
     ;; Track the player's current Y position and homes at it when the Y position
-    ;; matches that of the player.
+    ;; matches that of the player. The 'extra' state is laid out as follows:
+    ;;
+    ;;   |TTTT ttSD|; where:
+    ;;   |
+    ;;   |-  D: downwards if 1; upwards if 0 (just like the 'diagonal' algorithm).
+    ;;   |-  S: state: 0: moving up/down; 01: homing.
+    ;;   |- tt: number of times TT has run out. When it reaches '11', then we
+    ;;   |      change from the zero state to homing.
+    ;;   |- TT: timer for upwards/downwards movement.
+    ;;
+    ;; NOTE: whenever we transition to homing attach, then the 'extra' state
+    ;; follows the one from 'basic'. Notice that bit 1 is untouched by the
+    ;; 'basic' algorithm, which is used here to determine that we are in the
+    ;; 'homing' state.
     .proc homing
-        ;; TODO
+        ;; First of all, get the state of the enemy. If it's already on the
+        ;; 'homing' state, then just jump-and-link to the 'basic'
+        ;; algorithm. Otherwise we stay on this function.
+        ;;
+        ;; NOTE: this function needs to use the original 'extra' value a
+        ;; lot. Save it on the 'y' register since it's never used
+        ;; otherwise. Going forward notice all the 'tya', which simply mean "get
+        ;; the original 'extra' value".
+        lda Enemies::zp_enemies_pool_base + 3, x
+        tay
+        and #$02
+        beq @zero_state
+        JAL basic
 
+        ;; It's the first state of the enemy (i.e. just moving up and down).
+    @zero_state:
+        ;; Has the timer run out? If not, just continue moving.
+        tya
+        and #$F0
+        bne @move
+
+        ;; Yes! Grab the 'time' bits from the 'extra' state. If it's already
+        ;; #%11, then we are done with the counting cycles and we can setup the
+        ;; homing attack.
+        tya
+        and #$0C
+        cmp #$0C
+        beq @start_homing
+        cmp #$08
+        bne @increment_time
+
+        ;; We are at the #%10 'kind', which means we need to flip the vertical
+        ;; position.
+        tya
+        eor #$01
+        sta Enemies::zp_enemies_pool_base + 3, x
+        tay
+
+    @increment_time:
+        ;; Increment the 'time' bits and continue moving.
+        tya
+        clc
+        adc #$04
+        sta Enemies::zp_enemies_pool_base + 3, x
+        tay
+
+    @move:
+        ;; Moving is a matter of just increasing up/down depending on the 'down'
+        ;; bit from the 'extra' state.
+        tya
+        and #$01
+        beq @go_down
+
+        lda Enemies::zp_enemies_pool_base + 1, x
+        clc
+        adc Enemies::zp_enemy_arg
+        jmp @set_vertical
+    @go_down:
+        lda Enemies::zp_enemies_pool_base + 1, x
+        sec
+        sbc Enemies::zp_enemy_arg
+
+    @set_vertical:
+        ;; Set the new Y position.
+        sta Enemies::zp_enemies_pool_base + 1, x
+
+        ;; And increase the timer.
+        tya
+        clc
+        adc #$10
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        rts
+
+        ;; We are done going up and down. Now it's time to change the state of
+        ;; this enemy, and home towards the player depending on its position.
+    @start_homing:
+        ;; Ensure the 'state' bit is set.
+        tya
+        ora #$02
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        lda Enemies::zp_enemies_pool_base + 1, x
+        cmp Player::zp_screen_y
+        bcc @home_down
+        ;; TODO: up
+        nop
+    @home_down:
+        ;; TODO: subtract the same portion over and over. If overflow is set, then
+        ;; we know we are passed it.
+        ;; TODO: down
+
+    @end:
         rts
     .endproc
 
