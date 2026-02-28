@@ -559,19 +559,12 @@
         lda Enemies::zp_enemies_pool_base, x
         and #$80
         beq @move_left
-        lda Enemies::zp_enemies_pool_base + 2, x
-        clc
-        adc Enemies::zp_enemy_arg
+        inc Enemies::zp_enemies_pool_base + 2, x
         jmp @do_vertical
     @move_left:
-        lda Enemies::zp_enemies_pool_base + 2, x
-        sec
-        sbc Enemies::zp_enemy_arg
+        dec Enemies::zp_enemies_pool_base + 2, x
 
     @do_vertical:
-        ;; Set the previous computation regardless of the branch.
-        sta Enemies::zp_enemies_pool_base + 2, x
-
         ;; The vertical movement works the same way, but taking into account its
         ;; direction via the 'extra' state. Note that we mask it, which is not
         ;; needed for the main enemies which use this algorithm, but it is for
@@ -579,21 +572,13 @@
         lda Enemies::zp_enemies_pool_base + 3, x
         and #$01
         beq @move_up
-        lda Enemies::zp_enemies_pool_base + 1, x
-        clc
-        adc Enemies::zp_enemy_arg
+        inc Enemies::zp_enemies_pool_base + 1, x
         jmp @check_collision
     @move_up:
-        lda Enemies::zp_enemies_pool_base + 1, x
-        sec
-        sbc Enemies::zp_enemy_arg
-
-    @check_collision:
-        ;; Set the previous computation regardless of the branch.
-        sta Enemies::zp_enemies_pool_base + 1, x
+        dec Enemies::zp_enemies_pool_base + 1, x
 
         ;; Collision checking.
-
+    @check_collision:
         ;; Translate the Y axis into tile coordinates.
         lda Enemies::zp_enemies_pool_base + 1, x
         lsr
@@ -633,10 +618,7 @@
 
         ;; Move downwards once, which cancels the movement set at the beginning
         ;; of the function.
-        lda Enemies::zp_enemies_pool_base + 1, x
-        clc
-        adc Enemies::zp_enemy_arg
-        sta Enemies::zp_enemies_pool_base + 1, x
+        inc Enemies::zp_enemies_pool_base + 1, x
 
         rts
 
@@ -682,16 +664,10 @@
         ;; stucked or other weird situations.
         and #$80
         beq @bounce_left
-        lda Enemies::zp_enemies_pool_base + 2, x
-        clc
-        adc Enemies::zp_enemy_arg
-        jmp @set_bounce
+        inc Enemies::zp_enemies_pool_base + 2, x
+        rts
     @bounce_left:
-        lda Enemies::zp_enemies_pool_base + 2, x
-        sec
-        sbc Enemies::zp_enemy_arg
-    @set_bounce:
-        sta Enemies::zp_enemies_pool_base + 2, x
+        dec Enemies::zp_enemies_pool_base + 2, x
         rts
 
         ;; Last but not least, let's see if the enemy collides on its bottom
@@ -729,10 +705,7 @@
         sta Enemies::zp_enemies_pool_base + 3, x
 
         ;; Make it bounce up.
-        lda Enemies::zp_enemies_pool_base + 1, x
-        sec
-        sbc Enemies::zp_enemy_arg
-        sta Enemies::zp_enemies_pool_base + 1, x
+        dec Enemies::zp_enemies_pool_base + 1, x
 
         rts
     .endproc
@@ -789,7 +762,7 @@
         clc
         adc Globals::zp_tmp0
         sta Enemies::zp_enemies_pool_base + 3, x
-        jmp @end
+        rts
 
     @do:
         ;; Blindly increase the timer as overflows will be covered when entering
@@ -801,9 +774,13 @@
 
         ;; Now switch what to do depending on the algorithm.
         and #%00000110
-        beq @end
+        bne @next_algo_1
+        rts
+    @next_algo_1:
         cmp #%00000110
-        beq @end
+        bne @next_algo_2
+        rts
+    @next_algo_2:
         and #%00000100
         beq @horizontal
 
@@ -824,17 +801,12 @@
         beq @move_left
         iny
         iny
-        lda Enemies::zp_enemies_pool_base + 2, x
-        clc
-        adc Enemies::zp_enemy_arg
-        jmp @set_horizontal
+        inc Enemies::zp_enemies_pool_base + 2, x
+        jmp @after_horizontal
     @move_left:
-        lda Enemies::zp_enemies_pool_base + 2, x
-        sec
-        sbc Enemies::zp_enemy_arg
-    @set_horizontal:
-        sta Enemies::zp_enemies_pool_base + 2, x
+        dec Enemies::zp_enemies_pool_base + 2, x
 
+    @after_horizontal:
         ;; We store in a temporary value how much the X tile coordinates will
         ;; have to be increased in order to point to the right face.
         sty Globals::zp_tmp0
@@ -870,7 +842,8 @@
         ;; Bottom.
         inc Globals::zp_arg0
         jsr Background::collides
-        beq @end
+        bne @horizontal_collision
+        rts
 
     @horizontal_collision:
         ;; Restore the 'x' register from a previous 'Background::collides' call.
@@ -885,18 +858,10 @@
         ;; stucked or other weird situations.
         and #$80
         beq @bounce_left
-        lda Enemies::zp_enemies_pool_base + 2, x
-        clc
-        adc Enemies::zp_enemy_arg
-        jmp @set_bounce
+        inc Enemies::zp_enemies_pool_base + 2, x
+        rts
     @bounce_left:
-        lda Enemies::zp_enemies_pool_base + 2, x
-        sec
-        sbc Enemies::zp_enemy_arg
-    @set_bounce:
-        sta Enemies::zp_enemies_pool_base + 2, x
-
-    @end:
+        dec Enemies::zp_enemies_pool_base + 2, x
         rts
     .endproc
 
@@ -969,20 +934,12 @@
         and #$01
         beq @go_down
 
-        lda Enemies::zp_enemies_pool_base + 1, x
-        clc
-        adc Enemies::zp_enemy_arg
-        jmp @set_vertical
+        inc Enemies::zp_enemies_pool_base + 1, x
+        jmp @increase_timer
     @go_down:
-        lda Enemies::zp_enemies_pool_base + 1, x
-        sec
-        sbc Enemies::zp_enemy_arg
+        dec Enemies::zp_enemies_pool_base + 1, x
 
-    @set_vertical:
-        ;; Set the new Y position.
-        sta Enemies::zp_enemies_pool_base + 1, x
-
-        ;; And increase the timer.
+    @increase_timer:
         tya
         clc
         adc #$10
