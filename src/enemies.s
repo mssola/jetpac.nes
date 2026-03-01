@@ -545,10 +545,17 @@
         JAL bite_the_dust
 
     @check_down:
-        ;; If that failed, then increment the vertical tile coordinate twice to
-        ;; get the bottom boundary and check again.
+        ;; If that failed, then increment the vertical tile coordinate to get
+        ;; the bottom boundary and check again. Note that the "bottom" is
+        ;; different if it's the regular 'basic' enemy or it's the fighter jet
+        ;; re-using this algorithm. That's why if the level kind is 3 the bottom
+        ;; is increased by one and not twice.
         inc Globals::zp_arg0
+        ldy Globals::zp_level_kind
+        cpy #3
+        beq @skip_second_inc
         inc Globals::zp_arg0
+    @skip_second_inc:
         jsr Background::collides
         beq @end
         JAL bite_the_dust
