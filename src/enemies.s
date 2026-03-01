@@ -957,22 +957,28 @@
         ;; We are done going up and down. Now it's time to change the state of
         ;; this enemy, and home towards the player depending on its position.
     @start_homing:
-        ;; Ensure the 'state' bit is set.
-        tya
-        ora #$02
+        ;; Out of simplicity, the movement kind is picked at random. Hence,
+        ;; initialize the 'a' register with a random number.
+        stx Globals::zp_tmp0
+        jsr Prng::random_valid_y_coordinate
+        ldx Globals::zp_tmp0
+
+        ;; Ensure the 'state' bit is set whenever we enter back at the 'homing'
+        ;; function, so we can jump right into 'basic'. The 'downwards' bit is
+        ;; set in the next step, so zero it out for now. And set the timer to
+        ;; '1'.
+        ora #$12
+        and #%00011110
+
+        ;; Compare the current Y position to that of the player. Then set the
+        ;; 'downwards' bit if it needs to go down.
+        ldy Enemies::zp_enemies_pool_base + 1, x
+        cpy Player::zp_screen_y
+        bcs @set_homing_to_basic
+        ora #$01
+
+    @set_homing_to_basic:
         sta Enemies::zp_enemies_pool_base + 3, x
-
-        lda Enemies::zp_enemies_pool_base + 1, x
-        cmp Player::zp_screen_y
-        bcc @home_down
-        ;; TODO: up
-        nop
-    @home_down:
-        ;; TODO: subtract the same portion over and over. If overflow is set, then
-        ;; we know we are passed it.
-        ;; TODO: down
-
-    @end:
         rts
     .endproc
 
