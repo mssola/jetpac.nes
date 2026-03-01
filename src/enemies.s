@@ -439,7 +439,7 @@
     ;;
     ;;   |TTTT KK-D|; where:
     ;;   |
-    ;;   |- D: downwards if 1; upwards if 0 (just like the 'diagonal' algorithm).
+    ;;   |- D: downwards if 1; upwards if 0.
     ;;   |- K: movement kind (see the constants FALLING_VELOCITY_*).
     ;;   |- T: timer. Whenever it reaches zero, then a vertical movement is done.
     ;;
@@ -471,10 +471,17 @@
         and #$F0
         bne @update_extra_state
 
-        ;; Move downwards and reset the 'extra' state depending on the enemy
-        ;; kind.
+        ;; Move upwards/downwards and reset the 'extra' state depending on the
+        ;; enemy kind.
+        tya
+        and #$01
+        beq @up
         inc Enemies::zp_enemies_pool_base + 1, x
+        jmp @compute_next_counter
+    @up:
+        dec Enemies::zp_enemies_pool_base + 1, x
 
+    @compute_next_counter:
         ;; Yes, doing an index on a pre-computed ROM table would've been faster,
         ;; but I need the 'x' register and I didn't feel like doing funny
         ;; dances when it's not so bad.
@@ -716,7 +723,7 @@
     ;;
     ;;   |TTTT -AAD|; where:
     ;;   |
-    ;;   |-  D: downwards if 1; upwards if 0 (just like the 'diagonal' algorithm).
+    ;;   |-  D: downwards if 1; upwards if 0.
     ;;   |- AA: current algorithm: 00/11: stop; 01: horizontal; 10: diagonal.
     ;;   |-  T: timer for algorithm. Whenever it reaches zero the algorithm is changed.
     ;;
@@ -870,7 +877,7 @@
     ;;
     ;;   |TTTT ttSD|; where:
     ;;   |
-    ;;   |-  D: downwards if 1; upwards if 0 (just like the 'diagonal' algorithm).
+    ;;   |-  D: downwards if 1; upwards if 0.
     ;;   |-  S: state: 0: moving up/down; 01: homing.
     ;;   |- tt: number of times TT has run out. When it reaches '11', then we
     ;;   |      change from the zero state to homing.
