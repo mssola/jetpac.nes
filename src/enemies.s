@@ -512,25 +512,17 @@
         ora Globals::zp_tmp0
         sta Enemies::zp_enemies_pool_base + 3, x
 
-        ;; Check collisions with the background.
+        ;; Check collisions with the background. The check is pretty dumb and we
+        ;; just check all four corners, as trying to be smart about it became
+        ;; too complex for what I needed (and the dumb approach is actually not
+        ;; that slow).
 
-        ;; Remember that background checks are done in tile coordinates, not
-        ;; screen ones. So we have to do the translation to it (3 x
-        ;; 'lsr'). After that, for the X coordinate, depending if the enemy is
-        ;; facing left/right, we have to increment this coordinate (i.e. twice
-        ;; if facing right as an enemy of this type is always 2x2 sprites).
+        ;; Translate the X coordinate into tile ones.
         lda Enemies::zp_enemies_pool_base + 2, x
         lsr
         lsr
         lsr
-        tay
-        lda Enemies::zp_enemies_pool_base, x
-        and #$80
-        beq @after_x
-        iny
-        iny
-    @after_x:
-        sty Globals::zp_arg1
+        sta Globals::zp_arg1
 
         ;; Translate the Y coordinate into tile ones.
         lda Enemies::zp_enemies_pool_base + 1, x
@@ -539,14 +531,20 @@
         lsr
         sta Globals::zp_arg0
 
-        ;; Perform a collision check with the upper boundary.
+        ;; Perform a collision check with the upper left boundary.
+        jsr Background::collides
+        beq @check_up_right
+        JAL bite_the_dust
+
+    @check_up_right:
+        ;; Increase the X tile coordinate to check for the upper right boundary.
+        inc Globals::zp_arg1
         jsr Background::collides
         beq @check_down
         JAL bite_the_dust
 
     @check_down:
-        ;; If that failed, then increment the vertical tile coordinate to get
-        ;; the bottom boundary and check again. Note that the "bottom" is
+        ;; Now let's go for bottom boundaries. The notion of "bottom" is
         ;; different if it's the regular 'basic' enemy or it's the fighter jet
         ;; re-using this algorithm. That's why if the level kind is 3 the bottom
         ;; is increased by one and not twice.
@@ -555,7 +553,17 @@
         cpy #3
         beq @skip_second_inc
         inc Globals::zp_arg0
+
     @skip_second_inc:
+        ;; And the actual check.
+        jsr Background::collides
+        beq @check_down_left
+        JAL bite_the_dust
+
+    @check_down_left:
+        ;; So now the only corner left is the bottom left one. Adjust the X tile
+        ;; coordinate and try again.
+        dec Globals::zp_arg1
         jsr Background::collides
         beq @end
         JAL bite_the_dust
