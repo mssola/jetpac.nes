@@ -67,6 +67,8 @@
     zp_enemy_arg = $D5
 
     ;; Values for the counter of enemies that fall.
+    ;;
+    ;; NOTE: values for this have to fit into a nibble.
     FALLING_VELOCITY_0 = HZ / 5
     FALLING_VELOCITY_1 = HZ / 10
     FALLING_VELOCITY_2 = HZ / 25
@@ -105,9 +107,7 @@
         __fallthrough__ init_pool
     .endproc
 
-    ;; Initializes the enemy pool for this game. It requires an argument to be
-    ;; passed in 'Globals::zp_arg0' which contains the 'extra' state to be
-    ;; passed to all enemies of the pool.
+    ;; Initializes the enemy pool for this game.
     .proc init_pool
         ldx #0
 
@@ -898,7 +898,7 @@
     ;;   |      change from the zero state to homing.
     ;;   |- TT: timer for upwards/downwards movement.
     ;;
-    ;; NOTE: whenever we transition to homing attach, then the 'extra' state
+    ;; NOTE: whenever we transition to homing attack, then the 'extra' state
     ;; follows the one from 'basic'. Notice that bit 1 is untouched by the
     ;; 'basic' algorithm, which is used here to determine that we are in the
     ;; 'homing' state.
