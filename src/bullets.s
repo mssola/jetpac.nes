@@ -64,7 +64,7 @@
         ;; Initializing the pool is a matter of setting to $FF the state byte
         ;; for each bullet object.
         ldx #0
-        ldy #0
+        ldy #BULLETS_POOL_CAPACITY
         lda #$FF
     @pool_init_loop:
         sta zp_bullets_pool_base, x
@@ -72,8 +72,7 @@
         inx
         inx
 
-        iny
-        cpy #BULLETS_POOL_CAPACITY
+        dey
         bne @pool_init_loop
 
         rts
