@@ -161,42 +161,21 @@
     ;;
     ;; NOTE: the 'x' register is touched, while the 'y' register is not.
     .proc generate_extra
-        ;; TODO: rest of the enemies.
-        lda Globals::zp_level_kind
-        beq @init_basic
-        cmp #1
-        beq @init_bounce_1
-        cmp #2
-        beq @init_erratic
-        cmp #3
-        beq @init_homing
-        cmp #5
-        beq @init_bounce_2
-        cmp #6
-        __fallthrough__ @init_basic
+        ;; The value on 'extra' is basically a randomly generated value. Then we
+        ;; apply two masks into that random number: one to zero out some bits,
+        ;; and another to ensure some other bits are set. Hence, for a given
+        ;; level we ensure that the required bits are set/unset, while letting
+        ;; others to be set at random.
+        jsr Prng::random_valid_y_coordinate
+        ldx Globals::zp_level_kind
+        and zero_out_mask, x
+        ora ensure_set_mask, x
+        rts
 
-    @init_basic:
-        jsr Prng::random_valid_y_coordinate
-        and #$0F
-        ora #$11
-        rts
-    @init_erratic:
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        rts
-    @init_homing:
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        ora #$10
-        rts
-    @init_bounce_1:
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        rts
-    @init_bounce_2:
-        jsr Prng::random_valid_y_coordinate
-        and #$01
-        rts
+    zero_out_mask:
+        .byte $0F, $01, $01, $01, $00, $01, $0F, $00
+    ensure_set_mask:
+        .byte $11, $00, $00, $10, $10, $00, $11, $10
     .endproc
 
     ;; Update the state and movement of all active enemies.
@@ -997,10 +976,241 @@
         rts
     .endproc
 
-    ;; Simply chases the player. TODO: explain 'extra'.
+    ;; Chase the player. This has two phases:
+    ;;
+    ;;  1. Thinking: the enemy stops and buzzes horizontally. Whenever the timer
+    ;;               runs out, then it checks where's the player, sets the
+    ;;               directions and switches to 'moving' mode.
+    ;;  2. Moving: just move to the direction set on the 'thinking' mode,
+    ;;             while also taking care to bounce off platforms. Whenever
+    ;;             the timer runs out it will go back to 'thinking' mode.
+    ;;
+    ;; As with other algorithms, the 'extra' value is used. Namely:
+    ;;
+    ;;   |TTTT --SD|; where:
+    ;;   |
+    ;;   |- D: downwards if 1; upwards if 0.
+    ;;   |- S: 'moving' state if 1; 'thinking' if 1.
+    ;;   |- T: timer. Whenever it reaches zero, then a vertical movement is done.
+    ;;
     .proc chase
-        ;; TODO
+        ;; Get the value for the timer. Has it already turned out? If so then
+        ;; prepare for the next stage and switch to it. Otherwise we move
+        ;; according to the current algorithm.
+        lda Enemies::zp_enemies_pool_base + 3, x
+        tay
+        and #$F0
+        bne @move_or_think
+        tya
+        and #$02
+        beq @turn_into_moving
 
+        ;; Turn into thinking mode.
+        lda #$10
+        sta Enemies::zp_enemies_pool_base + 3, x
+        rts
+
+        ;; Turn into moving mode.
+    @turn_into_moving:
+        ;; The timer on the 'extra' value is reset to 1 and the state is set to
+        ;; "moving". The bit for vertical motion has to be set depending on the
+        ;; current position of the player and this enemy.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        ldy #$12
+        cmp Player::zp_screen_y
+        bcs @set_vertical
+        iny
+    @set_vertical:
+        sty Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Now compare the current X position to the player's one. With this
+        ;; set/unset the 'D' bit on the 'status' value so to set the horizontal
+        ;; motion to be taken.
+        lda Enemies::zp_enemies_pool_base + 2, x
+        cmp Player::zp_screen_x
+        bcc @set_right
+        lda #$7F
+        and Enemies::zp_enemies_pool_base, x
+        jmp @set_horizontal
+    @set_right:
+        lda #$80
+        ora Enemies::zp_enemies_pool_base, x
+    @set_horizontal:
+        sta Enemies::zp_enemies_pool_base, x
+
+        rts
+
+    @move_or_think:
+        tya
+        and #$02
+        bne @do_move
+
+        ;;;
+        ;; Thinking mode.
+
+        ;; Increment the counter.
+        tya
+        clc
+        adc #$10
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Don't always move, but once every frame. Otherwise enemies move
+        ;; _really_ fast and it's just too distracting.
+        and #$10
+        beq @do_think
+        rts
+
+        ;; If we are already halfway through it, think to the right, otherwise
+        ;; go to the left.
+    @do_think:
+        lda Enemies::zp_enemies_pool_base + 3, x
+        and #$80
+        beq @think_right
+        dec Enemies::zp_enemies_pool_base + 2, x
+        rts
+    @think_right:
+        inc Enemies::zp_enemies_pool_base + 2, x
+        rts
+
+        ;;;
+        ;; Movement mode.
+
+    @do_move:
+        ;; Increment the counter.
+        tya
+        clc
+        adc #$10
+        sta Enemies::zp_enemies_pool_base + 3, x
+        tay
+
+        ;; Perform vertical motion.
+        and #$01
+        beq @move_up
+        inc Enemies::zp_enemies_pool_base + 1, x
+        jmp @move_horizontal
+    @move_up:
+        dec Enemies::zp_enemies_pool_base + 1, x
+
+        ;; And now horizontal motion.
+    @move_horizontal:
+        lda Enemies::zp_enemies_pool_base, x
+        and #$80
+        beq @move_left
+        inc Enemies::zp_enemies_pool_base + 2, x
+        jmp @check_collisions
+    @move_left:
+        dec Enemies::zp_enemies_pool_base + 2, x
+
+        ;;;
+        ;; Collision checking is quite similar to the one on bouncing. The
+        ;; difference is that the bouncing has to continue for some time, as the
+        ;; bouncing is just temporary before switching back to chasing
+        ;; mode. Fortunately, this is as easy as flipping the correct bit, and
+        ;; the enemy will just move on the bouncing direction until it stops to
+        ;; "think" again (i.e. the timer runs out) and chase back the player.
+
+    @check_collisions:
+        ;; Translate the Y axis into tile coordinates.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg0
+
+        ;; Translate the X axis into tile coordinates. We will also save it into
+        ;; 'Globals::zp_tmp0' as that will save us some trouble down the road.
+        lda Enemies::zp_enemies_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg1
+        sta Globals::zp_tmp0
+
+        ;; Does this upper left corner collide?
+        jsr Background::collides
+        bne @bounce_down
+
+        ;; No. Increment the X coordinate to the right corner and ask again.
+        inc Globals::zp_arg1
+        inc Globals::zp_arg1
+        jsr Background::collides
+        beq @check_front_or_bottom
+
+    @bounce_down:
+        ;; Bounce down a bit to cancel the movement we've done, and set the 'D'
+        ;; bit from the 'extra' value to downward movement.
+        ldx Enemies::zp_pool_index
+        inc Enemies::zp_enemies_pool_base + 1, x
+        lda Enemies::zp_enemies_pool_base + 3, x
+        ora #$01
+        sta Enemies::zp_enemies_pool_base + 3, x
+        rts
+
+        ;; If it's the weird guy, then we need to check the front. Otherwise, if
+        ;; it's the UFO, there's no front (i.e. the sprite is half the height),
+        ;; so we go directly into the bottom check.
+    @check_front_or_bottom:
+        lda Globals::zp_level_kind
+        cmp #4
+        beq @check_bottom
+
+        ;; Check on the front right corner. If there's no collision, check the
+        ;; front left corner. If all fails, go check the bottom.
+        inc Globals::zp_arg0
+        jsr Background::collides
+        bne @bounce_left
+        dec Globals::zp_arg1
+        jsr Background::collides
+        beq @check_bottom
+
+        ;; Bounce right a bit to cancel the movement we've done, and set the 'D'
+        ;; bit from the 'state' value to right movement.
+        ldx Enemies::zp_pool_index
+        inc Enemies::zp_enemies_pool_base + 2, x
+        lda Enemies::zp_enemies_pool_base, x
+        ora #$7F
+        sta Enemies::zp_enemies_pool_base, x
+        rts
+
+    @bounce_left:
+        ;; Bounce left a bit to cancel the movement we've done, and set the 'D'
+        ;; bit from the 'state' value to left movement.
+        ldx Enemies::zp_pool_index
+        dec Enemies::zp_enemies_pool_base + 2, x
+        lda Enemies::zp_enemies_pool_base, x
+        and #$7F
+        sta Enemies::zp_enemies_pool_base, x
+        rts
+
+        ;; So, there was no upper/front collisions, let's check the bottom
+        ;; corners of the enemy.
+    @check_bottom:
+        ;; Remember that we saved the original X tile coordinate in
+        ;; 'zp_tmp0'. Recover that and point the Y tile coordinate to the bottom
+        ;; as well.
+        inc Globals::zp_arg0
+        lda Globals::zp_tmp0
+        sta Globals::zp_arg1
+        jsr Background::collides
+        bne @bounce_up
+
+        ;; Only thing left is the bottom right corner. If that is not a hit then
+        ;; we just go.
+        inc Globals::zp_arg1
+        inc Globals::zp_arg1
+        jsr Background::collides
+        beq @end
+
+    @bounce_up:
+        ;; Bounce up a bit to cancel the movement we've done, and set the 'D'
+        ;; bit from the 'extra' value to upwards movement.
+        ldx Enemies::zp_pool_index
+        dec Enemies::zp_enemies_pool_base + 1, x
+        lda Enemies::zp_enemies_pool_base + 3, x
+        and #$FE
+        sta Enemies::zp_enemies_pool_base + 3, x
+
+    @end:
         rts
     .endproc
 
