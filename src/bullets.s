@@ -157,8 +157,13 @@
     @set_bullet_x:
         sta zp_bullets_pool_base, x
 
-        ;; Save the index so it can be used in future bullet creation.
+        ;; Save the index so it can be used in future bullet creation. Also be
+        ;; careful to wrap around.
         inx
+        cpx #BULLETS_POOL_CAPACITY_BYTES
+        bne @set_last_allocated
+        ldx #0
+    @set_last_allocated:
         stx zp_last_allocated_index
 
         ;; Increase the number of bullets on screen.
