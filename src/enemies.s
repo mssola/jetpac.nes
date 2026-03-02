@@ -116,6 +116,21 @@
         sty zp_enemies_pool_size
 
     @enemies_init_loop:
+        jsr init_enemy_x
+
+        ;; Next enemy!
+        dey
+        bne @enemies_init_loop
+
+        rts
+    .endproc
+
+    ;; Initialize the enemy from the pool as indexed by the 'x' register.
+    ;;
+    ;; NOTE: the 'x' register will be advanced by the amount of bytes it takes
+    ;; to store an enemy on the poll (i.e. 4 bytes).
+    ;; NOTE: the 'y' register is not touched.
+    .proc init_enemy_x
         ;; The state is set at random.
         stx Globals::zp_tmp0
         jsr Prng::random_valid_y_coordinate
@@ -148,10 +163,8 @@
         inx
         sta zp_enemies_pool_base, x
 
-        ;; Next enemy!
+        ;; And point to the next enemy.
         inx
-        dey
-        bne @enemies_init_loop
 
         rts
     .endproc
