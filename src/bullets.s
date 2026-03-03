@@ -1,5 +1,14 @@
 .segment "CODE"
 
+;; Assuming that the 'x' register indexes a bullet on its pool, increment the
+;; register as many times as to point to the next one. Bound checking is not
+;; performed, it's up to the caller to implement that.
+.macro NEXT_BULLET_INDEX_X
+    inx
+    inx
+    inx
+.endmacro
+
 ;; Function and variables which deal with the pool of bullets that the
 ;; `driver.s` will use in order to render and deal with bullets on screen.
 .scope Bullets
@@ -68,9 +77,7 @@
         lda #$FF
     @pool_init_loop:
         sta zp_bullets_pool_base, x
-        inx
-        inx
-        inx
+        NEXT_BULLET_INDEX_X
 
         dey
         bne @pool_init_loop
@@ -119,9 +126,7 @@
         ;; are over the total size in memory, we have to roll the `x` back to
         ;; zero. This is possible because the loop starts at
         ;; `zp_last_allocated_index`, which is not necessarily 0.
-        inx
-        inx
-        inx
+        NEXT_BULLET_INDEX_X
         cpx #BULLETS_POOL_CAPACITY_BYTES
         bne @find_free_bullet_bucket
         ldx #0
@@ -190,9 +195,7 @@
         bne @move_active_bullet
 
         ;; No, go for the next one.
-        inx
-        inx
-        inx
+        NEXT_BULLET_INDEX_X
         jmp @move_loop
 
     @move_active_bullet:
@@ -213,14 +216,16 @@
         ;; are done checking for bullets. In this case, if this was the last
         ;; bullet active, return early.
         dec zp_bullets_pool_size
-        beq @end
+        bne @decrease_y
+        jmp @end
+    @decrease_y:
         dey
-        beq @end
+        bne @next_iteration
+        jmp @end
 
+    @next_iteration:
         ;; We still have active bullets to move, go to the next iteration.
-        inx
-        inx
-        inx
+        NEXT_BULLET_INDEX_X
         bne @move_loop
 
     @do_move_active_bullet:
@@ -282,8 +287,29 @@
         inx
         jmp @move_loop
 
+        ;; Enemy collision for this bullet. It's actually easier/faster to just
+        ;; unroll the loop.
     @check_enemy_collision:
-        ;; TODO
+        lda #Enemies::ENEMY_0_IDX
+        sta Enemies::zp_pool_index
+        jsr Enemies::collides
+        beq @enemy_1
+        jsr Enemies::bite_the_dust
+        jmp @save_bullet_move
+    @enemy_1:
+        lda #Enemies::ENEMY_1_IDX
+        sta Enemies::zp_pool_index
+        jsr Enemies::collides
+        beq @enemy_2
+        jsr Enemies::bite_the_dust
+        jmp @save_bullet_move
+    @enemy_2:
+        lda #Enemies::ENEMY_2_IDX
+        sta Enemies::zp_pool_index
+        jsr Enemies::collides
+        beq @save_bullet_move
+        jsr Enemies::bite_the_dust
+        __fallthrough__ @save_bullet_move
 
     @save_bullet_move:
         ;; Restore back the old value from the 'x' register.
@@ -299,7 +325,8 @@
         sta zp_bullets_pool_base, x
         inx
         dey
-        bne @move_loop
+        beq @end
+        jmp @move_loop
 
     @end:
         rts

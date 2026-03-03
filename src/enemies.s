@@ -20,6 +20,11 @@
     ;; The capacity of the enemies pool in bytes.
     ENEMIES_POOL_CAPACITY_BYTES = ENEMIES_POOL_CAPACITY * 4
 
+    ;; Indeces where each enemy definition starts on the pool.
+    ENEMY_0_IDX = 0
+    ENEMY_1_IDX = 4
+    ENEMY_2_IDX = 8
+
     ;; Initial X coordinates for enemies depending on if they appear on the
     ;; left/right edge of the screen.
     ENEMIES_INITIAL_X       = $F0
@@ -69,6 +74,18 @@
     ;; useful for different waves with the same algorithm but different speeds.
     zp_enemy_arg = $D5
 
+    ;; Checking for collision with bullets is actually way faster if after an
+    ;; update we save tile coordinates for each enemy. For this, we only need to
+    ;; save the tile coordinates, but we actually span 4 bytes per enemy. That's
+    ;; because of padding: we are re-using the 'Enemies::zp_pool_index' variable
+    ;; to index both the pool and this buffer. Hence, identifying an enemy by
+    ;; 'zp_pool_index' works in both buffers. This is extremely useful so
+    ;; bullets don't have to work out two different indeces for two different
+    ;; structures. Yes, this also means that we are wasting away 6 bytes of RAM,
+    ;; but we can work with that.
+    CURRENT_TILES_BYTES = ENEMIES_POOL_CAPACITY * 4
+    zp_current_tiles = $F0          ; asan:reserve CURRENT_TILES_BYTES
+
     ;; Values for the counter of enemies that fall.
     ;;
     ;; NOTE: values for this have to fit into a nibble.
@@ -95,7 +112,18 @@
         asl
         sta zp_enemy_tiles
 
-        ;; And set the movement function for this type.
+        ;; Initialize the tiles buffer by marking it as invalid. Note that we
+        ;; only initialize those positions that are actually needed. That is,
+        ;; the padding is left untouched as we don't care.
+        lda #$FF
+        sta Enemies::zp_current_tiles
+        sta Enemies::zp_current_tiles + 1
+        sta Enemies::zp_current_tiles + 4
+        sta Enemies::zp_current_tiles + 5
+        sta Enemies::zp_current_tiles + 8
+        sta Enemies::zp_current_tiles + 9
+
+        ;; Set the movement function for this type.
         lda movement_lo, x
         sta zp_enemy_movement_fn
         lda movement_hi, x
@@ -290,6 +318,18 @@
         ;; Restore the value from the 'x' register.
         ldx Enemies::zp_pool_index
 
+        ;; Save the current tile coordinates for this enemy.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_current_tiles, x
+        lda Enemies::zp_enemies_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_current_tiles + 1, x
+
         ;; TODO: collision with player
 
     @increase_index_next:
@@ -405,6 +445,47 @@
         rts
     .endproc
 
+    ;; Given a tile coordinate via 'Globals::zp_arg0' (Y) and 'Globals::zp_arg1'
+    ;; (X), and an enemy pointed by the 'Enemies::zp_pool_index' index, set to
+    ;; 'a' if the given coordinate collides with the referenced enemy.
+    ;;
+    ;; NOTE: the 'x' register is being touched. Everything else is left
+    ;; untouched.
+    .proc collides
+        ;; Fetch the Y tile coordinate. If it's not valid return early.
+        ldx Enemies::zp_pool_index
+        lda Enemies::zp_current_tiles, x
+        cmp #$FF
+        beq @no
+
+        ;; Check for the Y tile coordinate. If it's not the same on either the
+        ;; upper or the bottom parts of the enemy, then it's a no.
+        cmp Globals::zp_arg0
+        beq @check_x
+        clc
+        adc #1
+        cmp Globals::zp_arg0
+        bne @no
+
+    @check_x:
+        ;; If the Y tile coordinate checks out, let's narrow it down to the X
+        ;; coordinate.
+        lda Enemies::zp_current_tiles + 1, x
+        cmp Globals::zp_arg1
+        beq @yes
+        clc
+        adc #1
+        cmp Globals::zp_arg1
+        bne @no
+
+    @yes:
+        lda #1
+        rts
+    @no:
+        lda #0
+        rts
+    .endproc
+
     ;; The enemy has been set to dust, remove it.
     .proc bite_the_dust
         dec Enemies::zp_enemies_pool_size
@@ -416,6 +497,8 @@
         ;; Invalidate this enemy.
         lda #$FF
         sta Enemies::zp_enemies_pool_base, x
+        sta Enemies::zp_current_tiles, x
+        sta Enemies::zp_current_tiles + 1, x
 
         stx Globals::zp_tmp0
         sty Globals::zp_tmp1

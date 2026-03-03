@@ -42,6 +42,7 @@ $E0: zp_bullets_pool_size
 $E1: zp_last_allocated_index
 $E2: zp_current_bullet_y
 $E3: zp_current_bullet_x
+$F0-$FB: zp_current_tiles
 $0200-$02FF: m_sprites
 $2000: m_control
 $2001: m_mask
@@ -56,4 +57,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 354/2048 (17.29%)
+- Internal RAM: 366/2048 (17.87%)
