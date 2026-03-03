@@ -74,6 +74,10 @@
     FALLING_VELOCITY_2 = HZ / 25
     FALLING_VELOCITY_3 = HZ / 50
 
+    ;; The amount of time it has to pass in order for a dead enemy to come back
+    ;; to life.
+    REVIVE_COUNTER = HZ * 2
+
     ;; Initializes all the enemies for the current level. That is, it prepares
     ;; all the movement handlers, the enemy tiles to be used, and initializes
     ;; the pool of objects for it.
@@ -197,31 +201,35 @@
     ;; 'Bullets::update' already accounts for it and we assume that it ran
     ;; before this one.
     .proc update
-        ldx #252
+        ldx #0
 
         ;; The loop index will be moved out of the 'y' register since movement
-        ;; handlers might need to use it.
-        ldy zp_enemies_pool_size
+        ;; handlers might need to use it. Note that we loop over all the pool
+        ;; instead of just deciding on active ones. This is just to give dead
+        ;; enemies the chance to revive.
+        ldy #ENEMIES_POOL_CAPACITY
         sty Globals::zp_idx
 
-        ;; In the (unlikely) case that there are no enemies left, just skip
-        ;; 'update' altogether.
-        bne @loop
-        rts
-
     @loop:
-        ;; Move the 'x' register to the current enemy for this iteration.
-        NEXT_ENEMY_INDEX_X
-
-        ;; Is the current enemy marked as invalid? If so just skip it. Note that
-        ;; we don't even go to the '@next' down below, as that would decrease
-        ;; the loop counter and this loop only cares about active
-        ;; enemies. Having an enemy in the middle of the pool invalid is totally
-        ;; valid as it could have died before assigning a new one.
-        lda zp_enemies_pool_base, x
+        ;; Is this enemy in a 'valid' state? If so then jump into the loop body.
+        lda Enemies::zp_enemies_pool_base, x
         cmp #$FF
-        beq @loop
+        bne @loop_body
 
+        ;; No! Then tick down the counter. If it reaches zero, then it's time
+        ;; to revive this enemy slot.
+        dec Enemies::zp_enemies_pool_base + 3, x
+        bne @increase_index_next
+
+        ;; Initialize the slot as a new 'valid' enemy.
+        jsr init_enemy_x
+        inc Enemies::zp_enemies_pool_size
+
+        ;; The above 'init_enemy_x' call already updates the 'x' register to the
+        ;; next enemy. Jump to '@next', not '@increase_index_next'.
+        jmp @next
+
+    @loop_body:
         ;; If its movement state is already at the maximum, reset it, otherwise
         ;; increase it by 1. Note that we compare with $7E instead of $7F
         ;; because the latter would be equal to $FF if we accounted for the
@@ -280,6 +288,10 @@
         ldx Enemies::zp_pool_index
 
         ;; TODO: collision with player
+
+    @increase_index_next:
+        ;; Move the 'x' register to the current enemy for this iteration.
+        NEXT_ENEMY_INDEX_X
 
     @next:
         ;; Any more enemies left?
@@ -401,6 +413,8 @@
         ;; TODO: cloud animation and all that.
         lda #$FF
         sta Enemies::zp_enemies_pool_base, x
+        lda #REVIVE_COUNTER
+        sta Enemies::zp_enemies_pool_base + 3, x
 
         rts
     .endproc
