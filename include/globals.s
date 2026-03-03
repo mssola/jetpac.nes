@@ -6,8 +6,8 @@
     ;; Argument values reserved for passing arguments to functions in memory.
     zp_arg0 = $00
     zp_arg1 = $01
-    ;; zp_arg2 = $02
-    ;; zp_arg3 = $03
+    zp_arg2 = $02
+    zp_arg3 = $03
     ;; zp_arg4 = $04
 
     ;;;

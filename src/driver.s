@@ -96,6 +96,7 @@
         jsr Player::init
         jsr Bullets::init
         jsr Enemies::init
+        jsr Explosions::init
 
         ;; Initialize pause timer.
         lda #0
@@ -157,6 +158,9 @@
         jsr Player::update
         jsr Bullets::update
         jsr Enemies::update
+        jsr Explosions::update
+
+        ;; TODO: check if player has died
 
         __fallthrough__ sprite_cycling
     .endproc
@@ -345,6 +349,34 @@
     @rest_o_items:
         ;;; TODO
 
+        ;; At the very end, we allocate any active explosion.
+    @do_explosions:
+        ldx #0
+    @explosions_loop:
+        ;; If we are already passed the amount of bytes we could allocate for
+        ;; explosions, then break the loop.
+        cpx #Explosions::EXPLOSIONS_POOL_CAPACITY_BYTES
+        beq @after_explosions
+
+    @do_explosion:
+        ;; Is it valid?
+        lda Explosions::zp_pool_base, x
+        and #$80
+        beq @next_explosion
+
+        ;; Yes! Then call the explosion allocator with the values we have
+        ;; now. Note that the 'y' register will be updated as desired, but the
+        ;; 'x' register will become bananas. Hence, save its value before
+        ;; calling and restore it back after the call.
+        stx Globals::zp_tmp3
+        jsr Explosions::allocate_x_y
+        ldx Globals::zp_tmp3
+
+    @next_explosion:
+        NEXT_EXPLOSION_INDEX_X
+        jmp @explosions_loop
+
+    @after_explosions:
         ;; Are all spots already filled? As in, did the 'y' register wrap
         ;; around? If so, just go to the end.
         tya

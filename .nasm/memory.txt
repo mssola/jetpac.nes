@@ -1,5 +1,7 @@
 $00: zp_arg0
 $01: zp_arg1
+$02: zp_arg2
+$03: zp_arg3
 $05: zp_tmp0
 $06: zp_tmp1
 $07: zp_tmp2
@@ -27,6 +29,7 @@ $49: zp_velocity_x
 $50: zp_state
 $51: zp_walk_counter
 $60-$6B: zp_enemies_pool_base
+$70-$7B: zp_pool_base
 $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_bullets_pool_base
@@ -53,4 +56,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 340/2048 (16.60%)
+- Internal RAM: 354/2048 (17.29%)

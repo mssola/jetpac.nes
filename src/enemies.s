@@ -12,6 +12,9 @@
 
 .scope Enemies
     ;; Maximum amount of enemies allowed on screen at the same time.
+    ;;
+    ;; NOTE: EXPLOSIONS_POOL_CAPACITY depends on this value. If you update this,
+    ;; change it there.
     ENEMIES_POOL_CAPACITY = 3
 
     ;; The capacity of the enemies pool in bytes.
@@ -314,7 +317,7 @@
     ;; regions are also tampered by this function.
     ;;
     ;; NOTE: this function assumes that the enemy is in a valid state. That's up
-    ;; to the caller to check on this before calling this function.
+    ;; to the caller to check before calling this function.
     .proc allocate_x_y
         ;; Save the 'y' index, as it's faster to do funny address arithmetics
         ;; and add 16 in the end than constantly 'iny' every time in the right
@@ -383,7 +386,7 @@
         lda tiles + 3, x
         sta OAM::m_sprites + 13, y                  ; bottom right
 
-        ;; The Y-coordinate for each sprite.
+        ;; The X-coordinate for each sprite.
         ldx Globals::zp_tmp1
         lda Enemies::zp_enemies_pool_base + 2, x    ; top left
         sta OAM::m_sprites + 3, y
@@ -410,9 +413,25 @@
         ;; about impacting bullets?
         ldx Enemies::zp_pool_index
 
-        ;; TODO: cloud animation and all that.
+        ;; Invalidate this enemy.
         lda #$FF
         sta Enemies::zp_enemies_pool_base, x
+
+        stx Globals::zp_tmp0
+        sty Globals::zp_tmp1
+
+        ;; Create an explosion for this enemy.
+        lda Enemies::zp_enemies_pool_base + 1, x
+        sta Globals::zp_arg2
+        lda Enemies::zp_enemies_pool_base + 2, x
+        sta Globals::zp_arg3
+        jsr Explosions::create
+
+        ldx Globals::zp_tmp0
+        ldy Globals::zp_tmp1
+
+        ;; The 'extra' value is now a "revive counter". Whenever it times out
+        ;; this enemy will be eligible to go back to life.
         lda #REVIVE_COUNTER
         sta Enemies::zp_enemies_pool_base + 3, x
 
