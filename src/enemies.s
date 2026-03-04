@@ -86,6 +86,15 @@
     CURRENT_TILES_BYTES = ENEMIES_POOL_CAPACITY * 4
     zp_current_tiles = $F0          ; asan:reserve CURRENT_TILES_BYTES
 
+    ;; Cached values for the tile coordinates from the player. This is set
+    ;; before enemy update, and it's then used during collision check for each
+    ;; enemy.
+    zp_player_tile_left = $FC
+    zp_player_tile_right = $FD
+    zp_player_tile_top = $FE
+    zp_player_tile_waist = $FF
+    zp_player_tile_bottom = $CF
+
     ;; Values for the counter of enemies that fall.
     ;;
     ;; NOTE: values for this have to fit into a nibble.
@@ -234,6 +243,45 @@
     .proc update
         ldx #0
 
+        ;; Save the player's tile coordinates now as it will be useful/faster
+        ;; for collision checking with each enemy.
+        lda Player::zp_screen_y
+        tay
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_player_tile_top
+        tya
+        clc
+        adc #Player::PLAYER_WAIST
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_player_tile_waist
+        tya
+        clc
+        adc #Player::PLAYER_HEIGHT
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_player_tile_bottom
+
+        lda Player::zp_screen_x
+        tay
+        clc
+        adc #Player::LEFT_OFFSET
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_player_tile_left
+        tya
+        clc
+        adc #(Player::PLAYER_WIDTH / 2)
+        lsr
+        lsr
+        lsr
+        sta Enemies::zp_player_tile_right
+
         ;; The loop index will be moved out of the 'y' register since movement
         ;; handlers might need to use it. Note that we loop over all the pool
         ;; instead of just deciding on active ones. This is just to give dead
@@ -330,7 +378,14 @@
         lsr
         sta Enemies::zp_current_tiles + 1, x
 
-        ;; TODO: collision with player
+        ;; Does this enemy collide with the player?
+        jsr Enemies::collides_with_player
+        beq @increase_index_next
+
+        ;; Ooops, the player just kicked the bucket! Call the handlers for the
+        ;; enemy and the player and return early.
+        jsr Enemies::bite_the_dust
+        JAL Player::die_bart_die
 
     @increase_index_next:
         ;; Move the 'x' register to the current enemy for this iteration.
@@ -486,12 +541,59 @@
         rts
     .endproc
 
+    ;; Sets 'a' to 1 if the current enemy collides with the player, 0 otherwise.
+    .proc collides_with_player
+        ;; Top left/right are done only once because the top of the player is
+        ;; just the head, which in anchored to one side. Hence, depending on
+        ;; where the player is heading, we will check for top left or right.
+        bit Player::zp_state
+        bvs @set_left
+        lda Enemies::zp_player_tile_right
+        bne @store_top
+    @set_left:
+        lda Enemies::zp_player_tile_left
+    @store_top:
+        sta Globals::zp_arg1
+        lda Enemies::zp_player_tile_top
+        sta Globals::zp_arg0
+        jsr collides
+        bne @end
+
+        ;; Waist left
+        lda Enemies::zp_player_tile_left
+        sta Globals::zp_arg1
+        lda Enemies::zp_player_tile_waist
+        sta Globals::zp_arg0
+        jsr collides
+        bne @end
+
+        ;; Bottom left
+        lda Enemies::zp_player_tile_bottom
+        sta Globals::zp_arg0
+        jsr collides
+        bne @end
+
+        ;; Waist right
+        lda Enemies::zp_player_tile_right
+        sta Globals::zp_arg1
+        lda Enemies::zp_player_tile_waist
+        sta Globals::zp_arg0
+        jsr collides
+        bne @end
+
+        ;; Bottom right
+        lda Enemies::zp_player_tile_bottom
+        sta Globals::zp_arg0
+        jsr collides
+
+    @end:
+        rts
+    .endproc
+
     ;; The enemy has been set to dust, remove it.
     .proc bite_the_dust
         dec Enemies::zp_enemies_pool_size
 
-        ;; TODO: this assumes we are coming from within Enemies always. What
-        ;; about impacting bullets?
         ldx Enemies::zp_pool_index
 
         ;; Invalidate this enemy.

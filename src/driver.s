@@ -2,12 +2,18 @@
 
 .scope Driver
     ;; Timer for the player to be able to pick up the joypad upon entering the
-    ;; game.
+    ;; game (either when transitioning from the title or when losing a life).
     ;;
     ;; NOTE: this memory address is shared with `zp_title_timer`, as they can
     ;; never conflict with each other.
     zp_player_timer = $30       ; asan:ignore
-    PLAYER_TIMER_VALUE = HZ * 2
+    PLAYER_TIMER_FULL_VALUE = HZ * 3
+    PLAYER_TIMER_DEV_VALUE = HZ / 2
+    .ifdef PARTIAL
+        PLAYER_TIMER_VALUE = PLAYER_TIMER_DEV_VALUE
+    .else
+        PLAYER_TIMER_VALUE = PLAYER_TIMER_FULL_VALUE
+    .endif
 
     .ifdef PAL
         ;; Frame counter which resets every 5 frames.
@@ -31,6 +37,12 @@
 
     ;; Same as `zp_next_bullet_cycle` but for enemies.
     zp_next_enemy_cycle = $37
+
+    ;; Whether sprites have already been moved out in the 'move_sprites_out'
+    ;; situation. It's probably a waste of resources to spend a full byte for
+    ;; this, but I didn't see where to put it either, and we still have plenty
+    ;; of RAM left.
+    zp_moved_out = $38
 
     ;; Switch from the title screen to the main screen. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
@@ -65,11 +77,7 @@
         sta PPU::zp_mask
 
         ;; Setup the player timer.
-        .ifdef PARTIAL
-            lda #1
-        .else
-            lda #PLAYER_TIMER_VALUE
-        .endif
+        lda #PLAYER_TIMER_VALUE
         sta zp_player_timer
 
         ;; Mark the state of the game as "game". That is, the player has
@@ -82,14 +90,48 @@
         rts
     .endproc
 
+    ;; Move enemies and bullets out of the screen. This is done by setting the
+    ;; 'inactive' state for each object.
+    .proc move_sprites_out
+        ldx #0
+        lda #$FF
+
+        ;; Invalidate all enemies.
+        ldy #Enemies::ENEMIES_POOL_CAPACITY
+    @enemies_reset_loop:
+        sta Enemies::zp_enemies_pool_base, x
+        NEXT_ENEMY_INDEX_X
+        dey
+        bne @enemies_reset_loop
+
+        ;; Invalidate all bullets.
+        ldy #Bullets::BULLETS_POOL_CAPACITY
+    @bullets_reset_loop:
+        sta Bullets::zp_bullets_pool_base, x
+        NEXT_BULLET_INDEX_X
+        dey
+        bne @bullets_reset_loop
+
+        ;; Set that we have done this operation so it's not done in future
+        ;; cycles.
+        lda #1
+        sta Driver::zp_moved_out
+
+        rts
+    .endproc
+
     .proc update
+        ;; If the player timer is over, jump to the game immediately. Otherwise
+        ;; decrement the counter.
         lda zp_player_timer
         beq @game
 
         dec zp_player_timer
         beq @load_player
 
+        ;; TODO: items falling down.
         ;; TODO: blinking of the selected player (every HZ count?).
+
         rts
 
     @load_player:
@@ -98,15 +140,22 @@
         jsr Enemies::init
         jsr Explosions::init
 
-        ;; Initialize pause timer.
+        ;; Initialize pause timer and whether sprites have been moved out of the
+        ;; screen.
         lda #0
         sta zp_pause_timer
+        sta Driver::zp_moved_out
 
         ;; Initialize variables for sprite cycling.
         sta zp_next_bullet_cycle
         sta zp_next_enemy_cycle
 
     @game:
+        ;; Has the player died?
+        lda Globals::zp_flags
+        and #$10
+        bne @do_minimal_update
+
         ;; Check if the player is toggling the `pause` state.
         lda #(Joypad::BUTTON_START | Joypad::BUTTON_SELECT)
         and Joypad::zp_buttons1
@@ -158,10 +207,32 @@
         jsr Player::update
         jsr Bullets::update
         jsr Enemies::update
+    @do_minimal_update:
         jsr Explosions::update
 
-        ;; TODO: check if player has died
+        ;; Has the player died? If it is dead, then we need to remove all
+        ;; sprites except for objects and explosions, and whenever
+        ;; explosions/items are done moving we can set the timer again to start
+        ;; over with the game screen.
+        lda Globals::zp_flags
+        and #$10
+        beq @sprite_cycling
 
+        ;; Invalidate bullets and enemies if we haven't already.
+        lda Driver::zp_moved_out
+        bne @check_explosions
+        jsr move_sprites_out
+
+    @check_explosions:
+        ;; Are there still active explosions?
+        lda Explosions::zp_active
+        bne @sprite_cycling
+
+        ;; Nope! Then set the player's timer.
+        lda #PLAYER_TIMER_VALUE
+        sta zp_player_timer
+
+    @sprite_cycling:
         __fallthrough__ sprite_cycling
     .endproc
 

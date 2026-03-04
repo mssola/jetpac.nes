@@ -31,19 +31,22 @@
     ;;  3. X coordinate.
     zp_pool_base = $70          ; asan:reserve EXPLOSIONS_POOL_CAPACITY_BYTES
 
+    ;; Number of active explosions at the moment.
+    zp_active = $7C
+
     ;; The amount of time each explosion frame will take.
     FRAME_TIME = HZ / 20
 
     ;; Initialize the pool of explosions for the game.
     .proc init
         lda #0
+        sta Explosions::zp_active
+
         ldx #0
         ldy #EXPLOSIONS_POOL_CAPACITY
-
     @loop:
         sta Explosions::zp_pool_base, x
         NEXT_EXPLOSION_INDEX_X
-
         dey
         bne @loop
 
@@ -73,6 +76,9 @@
         sta Explosions::zp_pool_base + 1, x
         lda Globals::zp_arg3
         sta Explosions::zp_pool_base + 2, x
+
+        ;; Increase the number of active explosions and quit.
+        inc Explosions::zp_active
         rts
 
     @next:
@@ -122,7 +128,9 @@
         bne @next
 
     @explosion_done:
-        ;; We are actually done. Invalidate the explosion.
+        ;; We are actually done. Decrement the number of active explosions and
+        ;; invalidate this one.
+        dec Explosions::zp_active
         ldy #0
         __fallthrough__ @set_and_next
 

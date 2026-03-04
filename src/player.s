@@ -114,6 +114,11 @@
     ;; Initialize the player's sprite. Note that for the sprite to look
     ;; correctly on screen you still need to call `Player::update` afterwards.
     .proc init
+        ;; Make sure that the 'dead' bit from the global flags is zeroed out.
+        lda Globals::zp_flags
+        and #%11101111
+        sta Globals::zp_flags
+
         ;; Initial state.
         lda #%01000100
         sta zp_state
@@ -821,5 +826,32 @@
         sta OAM::m_sprites + $17
 
         rts
+    .endproc
+
+    ;; That's just german for "the Bart, the".
+    .proc die_bart_die
+        ;; TODO: dec lifes
+
+        ;; Move the player's sprites out of the screen.
+        ldx #0
+        lda #$FF
+        sta OAM::m_sprites, x
+        sta OAM::m_sprites + 4, x
+        sta OAM::m_sprites + 8, x
+        sta OAM::m_sprites + 12, x
+        sta OAM::m_sprites + 16, x
+        sta OAM::m_sprites + 20, x
+
+        ;; Set the player as dead.
+        lda #$10
+        ora Globals::zp_flags
+        sta Globals::zp_flags
+
+        ;; Create an explosion.
+        lda Player::zp_screen_y
+        sta Globals::zp_arg2
+        lda Player::zp_screen_x
+        sta Globals::zp_arg3
+        JAL Explosions::create
     .endproc
 .endscope
