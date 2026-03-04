@@ -34,6 +34,28 @@
         jsr Driver::pal_handler
     .endif
 
+    ;; Do we need to update the lifes from players on the HUD?
+    lda Player::zp_state
+    and #%00001000
+    beq @global_flags
+
+    ;; Yeah! TODO: this is only done for player 1.
+    bit PPU::m_status
+    lda #$28
+    sta PPU::m_address
+    lda #$4B
+    sta PPU::m_address
+    lda Player::zp_lifes
+    clc
+    adc #$10
+    sta PPU::m_data
+
+    ;; And unset the 'life' flag from the player.
+    lda Player::zp_state
+    and #%11110111
+    sta Player::zp_state
+
+@global_flags:
     ;; TODO: some actions here will depend on the status of the game...
     lda Globals::zp_flags
     and #%00000001

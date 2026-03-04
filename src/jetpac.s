@@ -122,6 +122,7 @@
     sta Globals::zp_flags
     sta Joypad::zp_buttons1
     sta Joypad::zp_buttons2
+    sta Player::zp_state
 
     ;; Initialize the level. We allow the build system to pass its own value for
     ;; this in `LEVEL`, just in case we want to debug the enemy of a specific

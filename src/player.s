@@ -86,7 +86,8 @@
     ;; |-----+------------+-----------------------------------------------|
     ;; |   7 | thrust     | Player is hitting the thrust                  |
     ;; |   6 | heading    | heading right                                 |
-    ;; | 5-3 | -          | Unused                                        |
+    ;; | 5-4 | -          | Unused                                        |
+    ;; |   3 | life       | Lifes should be updated on screen             |
     ;; |   2 | update     | Sprite (animation or heading) must be updated |
     ;; | 1-0 | walk       | 0: still; 1: animation 1; 2: animation 2      |
     zp_state = $50
@@ -101,6 +102,9 @@
         ;; NOTE: only used on PAL.
         zp_step_on_pal = $52
     .endif
+
+    ;; Lifes for both players.
+    zp_lifes = $53              ; asan:reserve $02
 
     ;; How many animations are there for walking?
     WALK_ANIMATION_NR = 3
@@ -830,7 +834,13 @@
 
     ;; That's just german for "the Bart, the".
     .proc die_bart_die
-        ;; TODO: dec lifes
+        ;; Decrement the life.
+        ;; TODO: this is just considering the first player only!.
+        dec Player::zp_lifes
+        beq @over
+        lda Player::zp_state
+        ora #%00001000
+        sta Player::zp_state
 
         ;; Move the player's sprites out of the screen.
         ldx #0
@@ -853,5 +863,14 @@
         lda Player::zp_screen_x
         sta Globals::zp_arg3
         JAL Explosions::create
+
+    @over:
+        ;; Set the proper flag for game over.
+        ;; TODO: game over (coin)
+        lda Globals::zp_flags
+        ora #%00000010
+        sta Globals::zp_flags
+
+        rts
     .endproc
 .endscope

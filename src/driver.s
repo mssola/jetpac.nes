@@ -80,6 +80,14 @@
         lda #PLAYER_TIMER_VALUE
         sta zp_player_timer
 
+        ;; Initialize lifes for both players.
+        lda #4
+        sta Player::zp_lifes
+        sta Player::zp_lifes + 1
+        lda Player::zp_state
+        ora #%00001000
+        sta Player::zp_state
+
         ;; Mark the state of the game as "game". That is, the player has
         ;; started. Also set the `ppu` flag and unset the `title over` one.
         lda #%01000001
