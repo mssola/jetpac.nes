@@ -34,6 +34,11 @@ jobs:
       - name: Main task
         run: V=1 make all
 
+      - name: Clean old release assets
+        run: gh release delete latest --yes --cleanup-tag || true
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Update releases page
         uses: softprops/action-gh-release@v2
         with:
