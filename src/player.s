@@ -834,14 +834,19 @@
 
     ;; That's just german for "the Bart, the".
     .proc die_bart_die
-        ;; Decrement the life.
+        ;; Decrement the life. If we reach zero, then there's no point on
+        ;; signaling the NMI code to render this change.
+        ;;
         ;; TODO: this is just considering the first player only!.
         dec Player::zp_lifes
-        beq @over
+        beq @skip_life_update
+
+        ;; Notify NMI code to render lifes again, as they have changed.
         lda Player::zp_state
         ora #%00001000
         sta Player::zp_state
 
+    @skip_life_update:
         ;; Move the player's sprites out of the screen.
         ldx #0
         lda #$FF
@@ -863,14 +868,5 @@
         lda Player::zp_screen_x
         sta Globals::zp_arg3
         JAL Explosions::create
-
-    @over:
-        ;; Set the proper flag for game over.
-        ;; TODO: game over (coin)
-        lda Globals::zp_flags
-        ora #%00000010
-        sta Globals::zp_flags
-
-        rts
     .endproc
 .endscope

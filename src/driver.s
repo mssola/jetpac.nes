@@ -236,7 +236,18 @@
         lda Explosions::zp_active
         bne @sprite_cycling
 
-        ;; Nope! Then set the player's timer.
+        ;; After all the explosions have been done, do we have any life left?
+        lda Player::zp_lifes
+        bne @reset_timer
+
+        ;; No! Toggle the game over bit.
+        ;; TODO: missing the coin game over.
+        lda Globals::zp_flags
+        ora #%00000010
+        sta Globals::zp_flags
+
+    @reset_timer:
+        ;; Reset the player's timer to enter the game screen again.
         lda #PLAYER_TIMER_VALUE
         sta zp_player_timer
 

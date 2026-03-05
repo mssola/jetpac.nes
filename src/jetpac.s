@@ -46,6 +46,7 @@
 .include "enemies.s"
 .include "bullets.s"
 .include "title.s"
+.include "over.s"
 .include "driver.s"
 .include "interrupts.s"
 
@@ -109,8 +110,10 @@
     __fallthrough__ main
 .endproc
 
-
 .proc main
+    ;; TODO: score initialization has to happen here.
+
+@init:
     ;; Disable the PPU and zero out variables which shadow PPU registers.
     lda #0
     sta PPU::m_mask
@@ -139,6 +142,9 @@
 
     ;; Initialize the assets for the game.
     jsr Assets::init
+
+    ;; Initialize some variables from the "Game Over" side of the game.
+    jsr Over::init
 
     ;; Initialize some PAL-specific constants.
     .ifdef PAL
@@ -209,8 +215,28 @@
     jmp @main_game_loop
 
 @over:
-    ;; TODO: allow to start over, reset flags, control register, etc.
-    jmp @over
+    ;; Display the "Game over" screen if it hasn't been displayed yet. After
+    ;; that, if we detect that the user wants to go back to the title screen we
+    ;; go back to @init to initialize everything again except for the score
+    ;; which should be preserved. Otherwise we go back to the main game loop,
+    ;; which effectively means to just sit and wait until for the right player
+    ;; input.
+    jsr Over::handle
+    sta Globals::zp_tmp0
+
+    ;; Wait for the PPU to render the screen.
+@set_flags_over:
+    lda #%10000000
+    ora Globals::zp_flags
+    sta Globals::zp_flags
+@wait_for_render_over:
+    bit Globals::zp_flags
+    bmi @wait_for_render_over
+
+    ;; Did the user want to start over?
+    lda Globals::zp_tmp0
+    beq @main_game_loop
+    jmp @init
 .endproc
 
 .segment "VECTORS"
