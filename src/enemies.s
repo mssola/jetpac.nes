@@ -207,7 +207,7 @@
         inx
         sta zp_enemies_pool_base, x
 
-        ;; And point to the next enemy.
+        ;; Point to the next enemy.
         inx
 
         rts
@@ -244,7 +244,10 @@
         ldx #0
 
         ;; Save the player's tile coordinates now as it will be useful/faster
-        ;; for collision checking with each enemy.
+        ;; for collision checking with each enemy. Note that some of the values
+        ;; here are tuned down so the collision is not so aggresive (i.e. we
+        ;; don't want to consider the whole rectangle of the player, but a
+        ;; smaller area).
         lda Player::zp_screen_y
         tay
         lsr
@@ -260,7 +263,7 @@
         sta Enemies::zp_player_tile_waist
         tya
         clc
-        adc #Player::PLAYER_HEIGHT
+        adc #(Player::PLAYER_WAIST + 2)
         lsr
         lsr
         lsr
