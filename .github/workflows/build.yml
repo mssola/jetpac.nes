@@ -40,6 +40,7 @@ jobs:
           tag_name: latest
           name: Continuous Build
           files: out/*.nes
+          overwrite_files: true
           body: |
             This release was automatically generated from commit ${{github.sha}}.
           draft: false
