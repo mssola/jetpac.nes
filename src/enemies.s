@@ -74,6 +74,9 @@
     ;; useful for different waves with the same algorithm but different speeds.
     zp_enemy_arg = $D5
 
+    ;; The palette to be used in the next enemy initialization.
+    zp_palette = $D6
+
     ;; Checking for collision with bullets is actually way faster if after an
     ;; update we save tile coordinates for each enemy. For this, we only need to
     ;; save the tile coordinates, but we actually span 4 bytes per enemy. That's
@@ -83,6 +86,10 @@
     ;; bullets don't have to work out two different indeces for two different
     ;; structures. Yes, this also means that we are wasting away 6 bytes of RAM,
     ;; but we can work with that.
+    ;;
+    ;; Similarly, palettes to be used for each enemy is also allocated here,
+    ;; just because of the convenience of the indexing on base 4. Here each
+    ;; enemy has the palette in 'lda zp_current_tiles + 2, x'.
     CURRENT_TILES_BYTES = ENEMIES_POOL_CAPACITY * 4
     zp_current_tiles = $F0          ; asan:reserve CURRENT_TILES_BYTES
 
@@ -124,13 +131,20 @@
         ;; Initialize the tiles buffer by marking it as invalid. Note that we
         ;; only initialize those positions that are actually needed. That is,
         ;; the padding is left untouched as we don't care.
-        lda #$FF
-        sta Enemies::zp_current_tiles
-        sta Enemies::zp_current_tiles + 1
-        sta Enemies::zp_current_tiles + 4
-        sta Enemies::zp_current_tiles + 5
-        sta Enemies::zp_current_tiles + 8
-        sta Enemies::zp_current_tiles + 9
+        ldy #$FF
+        sty Enemies::zp_current_tiles
+        sty Enemies::zp_current_tiles + 1
+        sty Enemies::zp_current_tiles + 4
+        sty Enemies::zp_current_tiles + 5
+        sty Enemies::zp_current_tiles + 8
+        sty Enemies::zp_current_tiles + 9
+
+        ;; Initialize the enemy palettes.
+        iny
+        sty Enemies::zp_palette
+        sty Enemies::zp_current_tiles + 2
+        sty Enemies::zp_current_tiles + 6
+        sty Enemies::zp_current_tiles + 10
 
         ;; Set the movement function for this type.
         lda movement_lo, x
@@ -175,6 +189,14 @@
     ;; to store an enemy on the poll (i.e. 4 bytes).
     ;; NOTE: the 'y' register is not touched.
     .proc init_enemy_x
+        ;; Pick the palette to be used for the enemy.
+        lda Enemies::zp_palette
+        clc
+        adc #1
+        and #$03
+        sta Enemies::zp_palette
+        sta Enemies::zp_current_tiles + 2, x
+
         ;; The state is set at random.
         stx Globals::zp_tmp0
         jsr Prng::random_valid_y_coordinate
@@ -439,6 +461,13 @@
         ;; start like this.
         lda Enemies::zp_enemies_pool_base, x
         sta Globals::zp_tmp2
+
+        ;; Push the palette to be used into the stack. This will be pulled down
+        ;; below.
+        lda Enemies::zp_current_tiles + 2, x
+        pha
+
+        ;; Preserve the index on the pool and load the one for enemy tiles.
         stx Globals::zp_tmp1
         ldx zp_enemy_tiles
 
@@ -449,14 +478,15 @@
         ;; not the sprite at the PPU level).
         bit Globals::zp_tmp2
         bmi @face_right
-        lda #0
-        beq @set_state
+        pla
+        jmp @set_state
     @face_right:
         txa
         clc
         adc #8
         tax
-        lda #%01000000
+        pla
+        ora #%01000000
     @set_state:
         sta OAM::m_sprites + 2, y                   ; top left
         sta OAM::m_sprites + 6, y                   ; top right

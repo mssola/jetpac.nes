@@ -44,6 +44,7 @@ $D1: zp_enemy_tiles
 $D2-$D3: zp_enemy_movement_fn
 $D4: zp_pool_index
 $D5: zp_enemy_arg
+$D6: zp_palette
 $E0: zp_bullets_pool_size
 $E1: zp_last_allocated_index
 $E2: zp_current_bullet_y
@@ -67,4 +68,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 377/2048 (18.41%)
+- Internal RAM: 378/2048 (18.46%)
