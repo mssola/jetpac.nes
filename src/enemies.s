@@ -50,10 +50,6 @@
     ;;  4. 'extra' state: depends on the enemy type.
     zp_enemies_pool_base = $60  ; asan:reserve ENEMIES_POOL_CAPACITY_BYTES
 
-    ;; The current size of active enemies. That is, one thing is the capacity of
-    ;; the pool, and another is what's the number of enemies on screen.
-    zp_enemies_pool_size = $D0
-
     ;; Base index of the enemy tiles in 'tiles' to be used. Whether to use one
     ;; row or the other for a given enemy is to be decided by its current state.
     zp_enemy_tiles = $D1
@@ -168,15 +164,9 @@
     ;; Initializes the enemy pool for this game.
     .proc init_pool
         ldx #0
-
-        ;; The initial size of the pool is its whole capacity.
         ldy #ENEMIES_POOL_CAPACITY
-        sty zp_enemies_pool_size
-
     @enemies_init_loop:
         jsr init_enemy_x
-
-        ;; Next enemy!
         dey
         bne @enemies_init_loop
 
@@ -327,7 +317,6 @@
 
         ;; Initialize the slot as a new 'valid' enemy.
         jsr init_enemy_x
-        inc Enemies::zp_enemies_pool_size
 
         ;; The above 'init_enemy_x' call already updates the 'x' register to the
         ;; next enemy. Jump to '@next', not '@increase_index_next'.
@@ -625,8 +614,6 @@
 
     ;; The enemy has been set to dust, remove it.
     .proc bite_the_dust
-        dec Enemies::zp_enemies_pool_size
-
         ;; Invalidate this enemy.
         lda #$FF
         ldx Enemies::zp_pool_index

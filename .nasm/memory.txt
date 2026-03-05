@@ -39,7 +39,6 @@ $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_bullets_pool_base
 $CF: zp_player_tile_bottom
-$D0: zp_enemies_pool_size
 $D1: zp_enemy_tiles
 $D2-$D3: zp_enemy_movement_fn
 $D4: zp_pool_index
@@ -68,4 +67,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 378/2048 (18.46%)
+- Internal RAM: 377/2048 (18.41%)
