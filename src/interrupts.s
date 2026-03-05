@@ -24,6 +24,9 @@
     lda #$02
     sta OAM::m_dma
 
+    ;; Increase the random seed.
+    inc Prng::zp_rand
+
     ;; Are we paused? If so skip timers, PAL handler and the likes.
     lda #%00001000
     and Globals::zp_flags
@@ -60,9 +63,6 @@
     lda Globals::zp_flags
     and #%00000001
     bne @ppu_registers
-
-    ;; Increase the random seed.
-    inc Prng::zp_rand
 
     ;; Decrease title timer.
     lda Title::zp_title_timer

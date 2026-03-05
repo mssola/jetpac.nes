@@ -18,10 +18,13 @@ GROUND_Y_COORD = 0xC8 - 64
 # The available values for the Y axis for enemies are above ground, below the
 # sky, and avoiding the left-most and right-most platforms.
 available = (UPPER_MARGIN_Y_COORD..GROUND_Y_COORD).to_a - (0x58..0x69).to_a - (0x40..0x50).to_a
+available = available.shuffle
 
 # With this produce the array containing a randomized sample from the
 # 'available' values.
-random_byte_array = Array.new(256) { format('$%02X', available.sample) }
+random_byte_array = (0...256).map do |i|
+  format('$%02X', available[i % available.length])
+end
 
 # And now print it in the assembler format.
 random_byte_array.each_slice(16) do |row|
