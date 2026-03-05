@@ -597,16 +597,12 @@
     .proc bite_the_dust
         dec Enemies::zp_enemies_pool_size
 
-        ldx Enemies::zp_pool_index
-
         ;; Invalidate this enemy.
         lda #$FF
+        ldx Enemies::zp_pool_index
         sta Enemies::zp_enemies_pool_base, x
         sta Enemies::zp_current_tiles, x
         sta Enemies::zp_current_tiles + 1, x
-
-        stx Globals::zp_tmp0
-        sty Globals::zp_tmp1
 
         ;; Create an explosion for this enemy.
         lda Enemies::zp_enemies_pool_base + 1, x
@@ -615,12 +611,10 @@
         sta Globals::zp_arg3
         jsr Explosions::create
 
-        ldx Globals::zp_tmp0
-        ldy Globals::zp_tmp1
-
         ;; The 'extra' value is now a "revive counter". Whenever it times out
         ;; this enemy will be eligible to go back to life.
         lda #REVIVE_COUNTER
+        ldx Enemies::zp_pool_index
         sta Enemies::zp_enemies_pool_base + 3, x
 
         rts
