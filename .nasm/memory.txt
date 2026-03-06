@@ -8,6 +8,11 @@ $07: zp_tmp2
 $08: zp_tmp3
 $09: zp_idx
 $0A: zp_rand
+$0B: zp_player_tile_left
+$0C: zp_player_tile_right
+$0D: zp_player_tile_top
+$0E: zp_player_tile_waist
+$0F: zp_player_tile_bottom
 $10: zp_displayed
 $11: zp_timer
 $20: zp_flags
@@ -40,11 +45,6 @@ $7F: zp_active
 $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_pool_base
-$C0: zp_player_tile_left
-$C1: zp_player_tile_right
-$C2: zp_player_tile_top
-$C3: zp_player_tile_waist
-$C4: zp_player_tile_bottom
 $D1: zp_tiles
 $D2-$D3: zp_movement_fn
 $D4: zp_pool_index

@@ -97,11 +97,11 @@
     ;; Cached values for the tile coordinates from the player. This is set
     ;; before enemy update, and it's then used during collision check for each
     ;; enemy.
-    zp_player_tile_left = $C0
-    zp_player_tile_right = $C1
-    zp_player_tile_top = $C2
-    zp_player_tile_waist = $C3
-    zp_player_tile_bottom = $C4
+    zp_player_tile_left = $0B
+    zp_player_tile_right = $0C
+    zp_player_tile_top = $0D
+    zp_player_tile_waist = $0E
+    zp_player_tile_bottom = $0F
 
     ;; Values for the counter of enemies that fall.
     ;;
