@@ -34,13 +34,17 @@ $49: zp_velocity_x
 $50: zp_state
 $51: zp_walk_counter
 $53-$54: zp_lifes
-$60-$6B: zp_pool_base
+$60-$6F: zp_pool_base
 $70-$7B: zp_pool_base
 $7C: zp_active
 $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_pool_base
-$CF: zp_player_tile_bottom
+$C0: zp_player_tile_left
+$C1: zp_player_tile_right
+$C2: zp_player_tile_top
+$C3: zp_player_tile_waist
+$C4: zp_player_tile_bottom
 $D1: zp_tiles
 $D2-$D3: zp_movement_fn
 $D4: zp_pool_index
@@ -50,11 +54,7 @@ $E0: zp_pool_size
 $E1: zp_last_allocated_index
 $E2: zp_current_bullet_y
 $E3: zp_current_bullet_x
-$F0-$FB: zp_current_tiles
-$FC: zp_player_tile_left
-$FD: zp_player_tile_right
-$FE: zp_player_tile_top
-$FF: zp_player_tile_waist
+$F0-$FF: zp_current_tiles
 $0200-$02FF: m_sprites
 $2000: m_control
 $2001: m_mask
@@ -69,4 +69,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 379/2048 (18.51%)
+- Internal RAM: 387/2048 (18.90%)

@@ -15,7 +15,7 @@
     ;;
     ;; NOTE: EXPLOSIONS_POOL_CAPACITY depends on this value. If you update this,
     ;; change it there.
-    ENEMIES_POOL_CAPACITY = 3
+    ENEMIES_POOL_CAPACITY = 4
 
     ;; The amount of bytes each pool item takes.
     SIZEOF_POOL_ITEM = 4
@@ -97,11 +97,11 @@
     ;; Cached values for the tile coordinates from the player. This is set
     ;; before enemy update, and it's then used during collision check for each
     ;; enemy.
-    zp_player_tile_left = $FC
-    zp_player_tile_right = $FD
-    zp_player_tile_top = $FE
-    zp_player_tile_waist = $FF
-    zp_player_tile_bottom = $CF
+    zp_player_tile_left = $C0
+    zp_player_tile_right = $C1
+    zp_player_tile_top = $C2
+    zp_player_tile_waist = $C3
+    zp_player_tile_bottom = $C4
 
     ;; Values for the counter of enemies that fall.
     ;;
