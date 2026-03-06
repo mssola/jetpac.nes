@@ -386,6 +386,15 @@
         ;; Restore the value from the 'x' register.
         ldx Enemies::zp_pool_index
 
+        ;; The enemy might have been burst to dust due to ground
+        ;; collision. Let's check it here and skip player collision if that's
+        ;; the case. This is not just an optimization detail, but otherwise we
+        ;; might get two explosions on the corner case of an enemy exploding due
+        ;; to background collision and colliding with the player at the same.
+        lda Enemies::zp_enemies_pool_base, x
+        cmp #$FF
+        beq @increase_index_next
+
         ;; Save the current tile coordinates for this enemy.
         lda Enemies::zp_enemies_pool_base + 1, x
         lsr
