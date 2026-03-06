@@ -1247,7 +1247,7 @@
     ;;   |
     ;;   |- D: downwards if 1; upwards if 0.
     ;;   |- S: 'moving' state if 1; 'thinking' if 1.
-    ;;   |- T: timer. Whenever it reaches zero, then a vertical movement is done.
+    ;;   |- T: timer. Whenever it reaches zero, then we change of phase.
     ;;
     .proc chase
         ;; Get the value for the timer. Has it already turned out? If so then
