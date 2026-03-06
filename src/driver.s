@@ -173,8 +173,13 @@
         lda zp_pause_timer
         bne @skip_pause_handling
 
-        ;; The timer is zero and the player asked to pause, let's reset the
-        ;; timer.
+        ;; The timer reached zero, but is the player actually just holding the
+        ;; button? If so ignore it until it unholds it.
+        eor Joypad::zp_prev
+        and #(Joypad::BUTTON_START | Joypad::BUTTON_SELECT)
+        bne @skip_pause_handling
+
+        ;; Let's reset the timer.
         lda #PAUSE_TIMER_VALUE
         sta zp_pause_timer
 

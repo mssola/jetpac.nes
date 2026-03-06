@@ -11,6 +11,7 @@ $0A: zp_rand
 $10: zp_displayed
 $11: zp_timer
 $20: zp_flags
+$21: zp_prev
 $22: zp_buttons1
 $23: zp_buttons2
 $24: zp_level

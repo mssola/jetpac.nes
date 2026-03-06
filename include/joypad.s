@@ -13,6 +13,9 @@
     m_joypad1 = $4016
     ;; m_joypad2 = $4017
 
+    ;; The previous reading from the latest read controller.
+    zp_prev     = $21
+
     ;; After running a `read_*` function these two variables will contain the
     ;; given result.
     zp_buttons1 = $22
@@ -68,5 +71,7 @@
 ;; Shortcut for reading the joypad from the first player safely.
 .macro READ_JOYPAD1
     ldx #$00
+    lda Joypad::zp_buttons1
+    sta Joypad::zp_prev
     jsr Joypad::read_x
 .endmacro
