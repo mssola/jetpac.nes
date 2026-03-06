@@ -29,8 +29,8 @@
     ENEMIES_INITIAL_X_RIGHT = $10
 
     ;; Base address for the pool of enemies used on this game. The pool has
-    ;; #ENEMIES_POOL_CAPACITY capacity of enemy objects where each one is 4
-    ;; bytes long:
+    ;; #ENEMIES_POOL_CAPACITY capacity of enemy objects where each one is
+    ;; #SIZEOF_POOL_ITEM bytes long:
     ;;  1. State: which can have two formats:
     ;;     - $FF: the enemy is not active.
     ;;     - |DIxx|xxxx|: where D is the direction bit (1: right; 0: left); and
@@ -73,10 +73,10 @@
 
     ;; Checking for collision with bullets is actually way faster if after an
     ;; update we save tile coordinates for each enemy. For this, we only need to
-    ;; save the tile coordinates, but notice that we actually span 4 bytes per
-    ;; enemy. That's because of padding: we are re-using the
-    ;; 'Enemies::zp_pool_index' variable to index both the pool and this
-    ;; buffer. Hence, identifying an enemy by 'zp_pool_index' works in both
+    ;; save the tile coordinates, but notice that we actually span
+    ;; #SIZEOF_POOL_ITEM bytes per enemy. That's because of padding: we are
+    ;; re-using the 'Enemies::zp_pool_index' variable to index both the pool and
+    ;; this buffer. Hence, identifying an enemy by 'zp_pool_index' works in both
     ;; buffers. This is extremely useful so bullets don't have to work out two
     ;; different indeces for two different structures.
     ;;
@@ -91,7 +91,7 @@
     ;; |- tile Y/X: tile coordinates for the enemy.
     ;; |- palette: the color palette to be applied to the enemy.
     ;;
-    CURRENT_TILES_BYTES = ENEMIES_POOL_CAPACITY * 4
+    CURRENT_TILES_BYTES = ENEMIES_POOL_CAPACITY * SIZEOF_POOL_ITEM
     zp_current_tiles = $F0          ; asan:reserve CURRENT_TILES_BYTES
 
     ;; Cached values for the tile coordinates from the player. This is set
@@ -180,7 +180,7 @@
     ;; Initialize the enemy from the pool as indexed by the 'x' register.
     ;;
     ;; NOTE: the 'x' register will be advanced by the amount of bytes it takes
-    ;; to store an enemy on the poll (i.e. 4 bytes).
+    ;; to store an enemy on the poll (i.e. #SIZEOF_POOL_ITEM bytes).
     ;; NOTE: the 'y' register is not touched.
     .proc init_x
         ;; Pick the palette to be used for the enemy.
