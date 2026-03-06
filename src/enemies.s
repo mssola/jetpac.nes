@@ -613,7 +613,16 @@
     .endproc
 
     ;; The enemy has been set to dust, remove it.
+    ;;
+    ;; NOTE: the 'x' register is modified, the 'y' register is _preserved_.
     .proc bite_the_dust
+        ;; This function might be called by loops which abuse index
+        ;; registers. Luckily that's not the case for the 'x' register, but at
+        ;; least the loop on Bullets::update() does heavy use of the 'y'
+        ;; register. Preserve it now on the stack.
+        tya
+        pha
+
         ;; Invalidate this enemy.
         lda #$FF
         ldx Enemies::zp_pool_index
@@ -633,6 +642,10 @@
         lda #REVIVE_COUNTER
         ldx Enemies::zp_pool_index
         sta Enemies::zp_enemies_pool_base + 3, x
+
+        ;; Restore back the value for the 'y' register.
+        pla
+        tay
 
         rts
     .endproc
