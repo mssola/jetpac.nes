@@ -75,17 +75,24 @@
 
     ;; Checking for collision with bullets is actually way faster if after an
     ;; update we save tile coordinates for each enemy. For this, we only need to
-    ;; save the tile coordinates, but we actually span 4 bytes per enemy. That's
-    ;; because of padding: we are re-using the 'Enemies::zp_pool_index' variable
-    ;; to index both the pool and this buffer. Hence, identifying an enemy by
-    ;; 'zp_pool_index' works in both buffers. This is extremely useful so
-    ;; bullets don't have to work out two different indeces for two different
-    ;; structures. Yes, this also means that we are wasting away 6 bytes of RAM,
-    ;; but we can work with that.
+    ;; save the tile coordinates, but notice that we actually span 4 bytes per
+    ;; enemy. That's because of padding: we are re-using the
+    ;; 'Enemies::zp_pool_index' variable to index both the pool and this
+    ;; buffer. Hence, identifying an enemy by 'zp_pool_index' works in both
+    ;; buffers. This is extremely useful so bullets don't have to work out two
+    ;; different indeces for two different structures.
     ;;
-    ;; Similarly, palettes to be used for each enemy is also allocated here,
-    ;; just because of the convenience of the indexing on base 4. Here each
-    ;; enemy has the palette in 'lda zp_current_tiles + 2, x'.
+    ;; Moreover, each enemy has its own palette, and we take advantage of the
+    ;; extra space from this structure by also allocating here this
+    ;; information. And, again, it's convenient for the indexing on base 4.
+    ;;
+    ;; In summary, the internal structure for each item of this buffer is:
+    ;;
+    ;; | tile Y | tile X | palette | (padding) |
+    ;; |
+    ;; |- tile Y/X: tile coordinates for the enemy.
+    ;; |- palette: the color palette to be applied to the enemy.
+    ;;
     CURRENT_TILES_BYTES = ENEMIES_POOL_CAPACITY * 4
     zp_current_tiles = $F0          ; asan:reserve CURRENT_TILES_BYTES
 
