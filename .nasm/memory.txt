@@ -35,8 +35,8 @@ $50: zp_state
 $51: zp_walk_counter
 $53-$54: zp_lifes
 $60-$6F: zp_pool_base
-$70-$7B: zp_pool_base
-$7C: zp_active
+$70-$7E: zp_pool_base
+$7F: zp_active
 $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_pool_base
@@ -69,4 +69,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 387/2048 (18.90%)
+- Internal RAM: 390/2048 (19.04%)

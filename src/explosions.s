@@ -13,7 +13,7 @@
     ;; Maximum amount of explosions allowed on screen at the same time. At
     ;; maximum it can happen that all enemies explode at the same time (3), plus
     ;; some animation (e.g. player blasting off).
-    EXPLOSIONS_POOL_CAPACITY = 3 + 1
+    EXPLOSIONS_POOL_CAPACITY = 4 + 1
 
     ;; The capacity of the explosions pool in bytes.
     EXPLOSIONS_POOL_CAPACITY_BYTES = EXPLOSIONS_POOL_CAPACITY * 3
@@ -32,7 +32,7 @@
     zp_pool_base = $70          ; asan:reserve EXPLOSIONS_POOL_CAPACITY_BYTES
 
     ;; Number of active explosions at the moment.
-    zp_active = $7C
+    zp_active = $7F
 
     ;; The amount of time each explosion frame will take.
     FRAME_TIME = HZ / 20
