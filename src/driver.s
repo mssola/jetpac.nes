@@ -309,7 +309,7 @@
         sta OAM::m_sprites, y
 
         iny
-        lda #0
+        lda #1
         sta OAM::m_sprites, y
         iny
         lda Bullets::zp_pool_base + 2, x
