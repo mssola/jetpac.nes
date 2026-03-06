@@ -872,7 +872,7 @@
         inc Globals::zp_arg1
         inc Globals::zp_arg1
         jsr Background::collides
-        beq @check_front_or_bottom
+        beq @prepare_check_front_collision
 
         ;; There was a (hopefully purely) upper collision!
     @bounce_down:
@@ -890,16 +890,6 @@
         inc Enemies::zp_pool_base + 1, x
 
         rts
-
-        ;; Now, depending on the level, the enemy might be the regular size or
-        ;; shorter. If it's on the shorter end, then move to check the bottom
-        ;; corners directly.
-    @check_front_or_bottom:
-        lda Globals::zp_level_kind
-        cmp #2
-        beq @prepare_check_front_collision
-        cmp #1
-        bne @check_bottom
 
     @prepare_check_front_collision:
         ;; We are checking the "front" (center) of the enemy, which corresponds
