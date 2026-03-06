@@ -48,18 +48,18 @@
     zp_timer = $35
     BULLET_TIMER_VALUE = HZ / 15
 
-    ;; Maximum moves that a bullet can do. The tile also transitions depending
-    ;; on the moves done so far.
-    BULLET_MAX_MOVES = 26
-    BULLET_FIRST_TRANSITION = 20
-    BULLET_LAST_TRANSITION = 25
-
     ;; Velocity at which bullets move.
     .ifdef PAL
         BULLET_VELOCITY = 7
     .else
         BULLET_VELOCITY = 6
     .endif
+
+    ;; Maximum moves that a bullet can do. The tile also transitions depending
+    ;; on the moves done so far.
+    BULLET_MAX_MOVES = BULLET_VELOCITY * 5
+    BULLET_FIRST_TRANSITION = BULLET_VELOCITY * 2
+    BULLET_LAST_TRANSITION = BULLET_VELOCITY * 4
 
     ;; Initialize the pool of bullets.
     .proc init
