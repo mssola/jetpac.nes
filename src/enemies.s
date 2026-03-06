@@ -158,8 +158,7 @@
         ;; Initialize the enemy arg, which is always 1 except for homing
         ;; attacks.
         ldy #1
-        txa
-        cmp #3
+        cpx #3
         bne @set_enemy_arg
         iny
     @set_enemy_arg:
@@ -435,11 +434,6 @@
     ;; NOTE: this function assumes that the enemy is in a valid state. That's up
     ;; to the caller to check before calling this function.
     .proc allocate_x_y
-        ;; Save the 'y' index, as it's faster to do funny address arithmetics
-        ;; and add 16 in the end than constantly 'iny' every time in the right
-        ;; order.
-        sty Globals::zp_tmp0
-
         ;; Y coordinates for each sprite of the enemy.
         lda Enemies::zp_enemies_pool_base + 1, x
         sta OAM::m_sprites, y                       ; top left
@@ -521,7 +515,7 @@
         sta OAM::m_sprites + 15, y                  ; bottom right
 
         ;; And update the 'y' register to notify 16 bytes were stored.
-        lda Globals::zp_tmp0
+        tya
         clc
         adc #16
         tay
