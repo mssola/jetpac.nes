@@ -112,7 +112,7 @@
         ;; Invalidate all enemies.
         ldy #Enemies::ENEMIES_POOL_CAPACITY
     @enemies_reset_loop:
-        sta Enemies::zp_enemies_pool_base, x
+        sta Enemies::zp_pool_base, x
         NEXT_ENEMY_INDEX_X
         dey
         bne @enemies_reset_loop
@@ -120,7 +120,7 @@
         ;; Invalidate all bullets.
         ldy #Bullets::BULLETS_POOL_CAPACITY
     @bullets_reset_loop:
-        sta Bullets::zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
         NEXT_BULLET_INDEX_X
         dey
         bne @bullets_reset_loop
@@ -280,19 +280,19 @@
 
         ;; The 'x' register will index from the different sprite pools.
         ldx zp_next_bullet_cycle
-        lda Bullets::zp_bullets_pool_base, x
+        lda Bullets::zp_pool_base, x
 
         ;; Is this a valid bullet?
         cmp #$FF
         beq @after_first_bullet
 
         ;; It is a valid bullet! Set it now.
-        lda Bullets::zp_bullets_pool_base + 1, x
+        lda Bullets::zp_pool_base + 1, x
         sta OAM::m_sprites, y
         iny
 
         ;; The tile selection depends on how many moves the bullet has done.
-        lda Bullets::zp_bullets_pool_base, x
+        lda Bullets::zp_pool_base, x
         and #%01111111
         cmp #Bullets::BULLET_LAST_TRANSITION
         bcs @last_bullet_tile
@@ -312,7 +312,7 @@
         lda #0
         sta OAM::m_sprites, y
         iny
-        lda Bullets::zp_bullets_pool_base + 2, x
+        lda Bullets::zp_pool_base + 2, x
         sta OAM::m_sprites, y
         iny
 
@@ -338,7 +338,7 @@
         ;; cycle index.
         ldx zp_next_enemy_cycle
         stx zp_first_enemy
-        lda Enemies::zp_enemies_pool_base, x
+        lda Enemies::zp_pool_base, x
 
         ;; Is this a valid enemy? If so allocate it and 'Enemies::allocate_x_y'
         ;; will be responsible for increasing the value of 'y' with the number
@@ -378,18 +378,18 @@
     @do_bullet:
         ;; Ok, so the bullet has not been allocated yet and we have space for
         ;; it. Is it valid?
-        lda Bullets::zp_bullets_pool_base, x
+        lda Bullets::zp_pool_base, x
         cmp #$FF
         beq @next_bullet
 
         ;; Yes! Then allocate now.
 
-        lda Bullets::zp_bullets_pool_base + 1, x
+        lda Bullets::zp_pool_base + 1, x
         sta OAM::m_sprites, y
         iny
 
         ;; The tile selection depends on how many moves the bullet has done.
-        lda Bullets::zp_bullets_pool_base, x
+        lda Bullets::zp_pool_base, x
         and #%01111111
         cmp #Bullets::BULLET_LAST_TRANSITION
         bcs @other_last_bullet_tile
@@ -409,7 +409,7 @@
         lda #0
         sta OAM::m_sprites, y
         iny
-        lda Bullets::zp_bullets_pool_base + 2, x
+        lda Bullets::zp_pool_base + 2, x
         sta OAM::m_sprites, y
         iny
 
@@ -434,7 +434,7 @@
     @do_enemy:
         ;; Ok, so the enemy has not been allocated yet and we have space for
         ;; it. Is it valid?
-        lda Enemies::zp_enemies_pool_base, x
+        lda Enemies::zp_pool_base, x
         cmp #$FF
         beq @next_enemy
 

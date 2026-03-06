@@ -27,10 +27,10 @@
     ;;                    bullet.
     ;;  2. Y coordinate.
     ;;  3. X coordinate.
-    zp_bullets_pool_base = $A0  ; asan:reserve BULLETS_POOL_CAPACITY_BYTES
+    zp_pool_base = $A0  ; asan:reserve BULLETS_POOL_CAPACITY_BYTES
 
     ;; The current amount of bullets on screen.
-    zp_bullets_pool_size = $E0
+    zp_pool_size = $E0
 
     ;; The index on the pool where the next bullet can start iterating from.
     ;; This is a small optimization so not to start from the beginning every
@@ -45,7 +45,7 @@
 
     ;; The amount of time we are not allowing B presses. This is a rather low
     ;; value so you can have quite some presses per frame.
-    zp_bullet_timer = $35
+    zp_timer = $35
     BULLET_TIMER_VALUE = HZ / 15
 
     ;; Maximum moves that a bullet can do. The tile also transitions depending
@@ -64,11 +64,11 @@
     ;; Initialize the pool of bullets.
     .proc init
         lda #0
-        sta zp_bullet_timer
-        sta zp_bullets_pool_size
-        sta zp_last_allocated_index
-        sta zp_current_bullet_y
-        sta zp_current_bullet_x
+        sta Bullets::zp_timer
+        sta Bullets::zp_pool_size
+        sta Bullets::zp_last_allocated_index
+        sta Bullets::zp_current_bullet_y
+        sta Bullets::zp_current_bullet_x
 
         ;; Initializing the pool is a matter of setting to $FF the state byte
         ;; for each bullet object.
@@ -76,7 +76,7 @@
         ldy #BULLETS_POOL_CAPACITY
         lda #$FF
     @pool_init_loop:
-        sta zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
         NEXT_BULLET_INDEX_X
 
         dey
@@ -91,14 +91,14 @@
     ;;   3. Check background/enemy collisions.
     .proc update
         ;; Are we already full of bullets on screen? If so go move them.
-        lda zp_bullets_pool_size
+        lda Bullets::zp_pool_size
         cmp #BULLETS_POOL_CAPACITY
         beq @move_bullets
 
         ;; Can the B button be pressed? If not go to `@move_bullets` directly.
-        lda zp_bullet_timer
+        lda Bullets::zp_timer
         beq @check_bullets_pressed
-        dec zp_bullet_timer
+        dec Bullets::zp_timer
         jmp @move_bullets
 
     @check_bullets_pressed:
@@ -109,15 +109,15 @@
 
         ;; The B button was pressed. Reset the bullet timer.
         lda #BULLET_TIMER_VALUE
-        sta zp_bullet_timer
+        sta Bullets::zp_timer
 
         ;; Let's fetch a free spot for the new bullet. Note that since we have
         ;; checked that the pools size is not the same as the capacity, there
         ;; *must* be a free spot. If that's not the case and we get into an
         ;; infinite loop, then that's a bug we have to fix :)
-        ldx zp_last_allocated_index
+        ldx Bullets::zp_last_allocated_index
     @find_free_bullet_bucket:
-        lda zp_bullets_pool_base, x
+        lda Bullets::zp_pool_base, x
         cmp #$FF
         beq @initialize_bucket
 
@@ -138,14 +138,14 @@
         lda Player::zp_state
         asl
         and #%10000000
-        sta zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
 
         ;; Set the Y coordinate to the player's waist.
         inx
         lda Player::zp_screen_y
         clc
         adc #(Player::PLAYER_WAIST - 1)
-        sta zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
 
         ;; Set the X coordinate to the player while also adjusting to the future
         ;; velocity applied on `@move_bullets` which, in turn, depends on the
@@ -160,7 +160,7 @@
     @set_bullet_left:
         adc #BULLET_VELOCITY
     @set_bullet_x:
-        sta zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
 
         ;; Save the index so it can be used in future bullet creation. Also be
         ;; careful to wrap around.
@@ -169,15 +169,15 @@
         bne @set_last_allocated
         ldx #0
     @set_last_allocated:
-        stx zp_last_allocated_index
+        stx Bullets::zp_last_allocated_index
 
         ;; Increase the number of bullets on screen.
-        inc zp_bullets_pool_size
+        inc Bullets::zp_pool_size
 
     @move_bullets:
         ;; We will have on the 'y' register the amount of bullets on screen
         ;; pending to be moved. If there are none, we can return early.
-        ldy zp_bullets_pool_size
+        ldy Bullets::zp_pool_size
         bne @do_move
         rts
 
@@ -190,7 +190,7 @@
 
     @move_loop:
         ;; Is the current bullet active?
-        lda zp_bullets_pool_base, x
+        lda Bullets::zp_pool_base, x
         cmp #$FF
         bne @move_active_bullet
 
@@ -210,12 +210,12 @@
 
         ;; Yes! Then mark it as over.
         lda #$FF
-        sta zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
 
         ;; Decrease the number of bullets active and go check collisions if we
         ;; are done checking for bullets. In this case, if this was the last
         ;; bullet active, return early.
-        dec zp_bullets_pool_size
+        dec Bullets::zp_pool_size
         bne @decrease_y
         jmp @end
     @decrease_y:
@@ -231,13 +231,13 @@
     @do_move_active_bullet:
         ;; Increase the number of moves that this bullet has done.
         stx Globals::zp_idx
-        inc zp_bullets_pool_base, x
+        inc Bullets::zp_pool_base, x
 
         ;; Save the position on the Y axis as the value for the current bullet,
         ;; then convert it into tile coordinates so it can be used later for
         ;; background collision check.
-        lda zp_bullets_pool_base + 1, x
-        sta zp_current_bullet_y
+        lda Bullets::zp_pool_base + 1, x
+        sta Bullets::zp_current_bullet_y
         lsr
         lsr
         lsr
@@ -246,7 +246,7 @@
         ;; Grab the position on the X axis and apply the velocity depending on
         ;; the direction, which was stored back on the `Globals::zp_tmp1`
         ;; variable.
-        lda zp_bullets_pool_base + 2, x
+        lda Bullets::zp_pool_base + 2, x
         bit Globals::zp_tmp1
         bmi @move_right
         sec
@@ -260,7 +260,7 @@
         ;; We now have the future value for the X axis. Store it as the current
         ;; value and then convert it into tile coordinates so it can be used for
         ;; background collision check.
-        sta zp_current_bullet_x
+        sta Bullets::zp_current_bullet_x
         lsr
         lsr
         lsr
@@ -273,10 +273,10 @@
         ;; There was a collision! Disable the bullet.
         ldx Globals::zp_idx
         lda #$FF
-        sta zp_bullets_pool_base, x
+        sta Bullets::zp_pool_base, x
 
         ;; Decrement the number of bullets active.
-        dec zp_bullets_pool_size
+        dec Bullets::zp_pool_size
         beq @end
         dey
         beq @end
@@ -321,8 +321,8 @@
         ;; decrease the number of active bullets to be moved. If we are already
         ;; into no bullets to be moved, then fall through and consider
         ;; collisions.
-        lda zp_current_bullet_x
-        sta zp_bullets_pool_base, x
+        lda Bullets::zp_current_bullet_x
+        sta Bullets::zp_pool_base, x
         inx
         dey
         beq @end
