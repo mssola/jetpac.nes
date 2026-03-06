@@ -287,29 +287,33 @@
         inx
         jmp @move_loop
 
-        ;; Enemy collision for this bullet. It's actually easier/faster to just
-        ;; unroll the loop.
+        ;; Enemy collision for this bullet.
     @check_enemy_collision:
-        lda #Enemies::ENEMY_0_IDX
+        ldx #0
         sta Enemies::zp_pool_index
+
+    @enemy_collision_loop:
+        ;; Does it collide?
         jsr Enemies::collides
-        beq @enemy_1
+        beq @next_enemy_collision
+
+        ;; Yes! Kill the enemy and break the loop.
         jsr Enemies::bite_the_dust
         jmp @save_bullet_move
-    @enemy_1:
-        lda #Enemies::ENEMY_1_IDX
-        sta Enemies::zp_pool_index
-        jsr Enemies::collides
-        beq @enemy_2
-        jsr Enemies::bite_the_dust
-        jmp @save_bullet_move
-    @enemy_2:
-        lda #Enemies::ENEMY_2_IDX
-        sta Enemies::zp_pool_index
-        jsr Enemies::collides
+
+    @next_enemy_collision:
+        ;; Advance by the size of each pool item.
+        lda Enemies::zp_pool_index
+        clc
+        adc #Enemies::SIZEOF_POOL_ITEM
+
+        ;; Are we at the end of the enemies' pool?
+        cmp #Enemies::ENEMIES_POOL_CAPACITY_BYTES
         beq @save_bullet_move
-        jsr Enemies::bite_the_dust
-        __fallthrough__ @save_bullet_move
+
+        ;; Nope! Save the index and fetch the next enemy.
+        sta Enemies::zp_pool_index
+        jmp @enemy_collision_loop
 
     @save_bullet_move:
         ;; Restore back the old value from the 'x' register.

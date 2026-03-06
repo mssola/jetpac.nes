@@ -17,13 +17,11 @@
     ;; change it there.
     ENEMIES_POOL_CAPACITY = 3
 
-    ;; The capacity of the enemies pool in bytes.
-    ENEMIES_POOL_CAPACITY_BYTES = ENEMIES_POOL_CAPACITY * 4
+    ;; The amount of bytes each pool item takes.
+    SIZEOF_POOL_ITEM = 4
 
-    ;; Indeces where each enemy definition starts on the pool.
-    ENEMY_0_IDX = 0
-    ENEMY_1_IDX = 4
-    ENEMY_2_IDX = 8
+    ;; The capacity of the enemies pool in bytes.
+    ENEMIES_POOL_CAPACITY_BYTES = ENEMIES_POOL_CAPACITY * SIZEOF_POOL_ITEM
 
     ;; Initial X coordinates for enemies depending on if they appear on the
     ;; left/right edge of the screen.
