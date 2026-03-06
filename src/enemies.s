@@ -113,7 +113,7 @@
 
     ;; The amount of time it has to pass in order for a dead enemy to come back
     ;; to life.
-    REVIVE_COUNTER = HZ * 2
+    REVIVE_COUNTER = HZ
 
     ;; Initializes all the enemies for the current level. That is, it prepares
     ;; all the movement handlers, the enemy tiles to be used, and initializes
