@@ -32,7 +32,7 @@ jobs:
             rubocop bin/ --format github
 
       - name: Main task
-        run: V=1 make all
+        run: V=1 make release
 
       - name: Clean old release assets
         run: gh release delete latest --yes --cleanup-tag || true

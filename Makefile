@@ -35,9 +35,16 @@ HAS_RUBY := $(shell command -v $(RUBY) >/dev/null 2>&1 && echo true || echo fals
 ##
 # Variables for building the game.
 LEVEL ?= 0
+LEVELS := $(shell seq 0 7)
+
+##
+# all: clean the workspace and build all ROM files.
 
 .PHONY: all
 all: clean deps build
+
+##
+# clean & deps: clean the workspace and check that all dependencies are met.
 
 .PHONY: clean
 clean:
@@ -51,6 +58,9 @@ clean:
 deps:
 	@which $(CC65) >/dev/null 2>/dev/null || (echo "ERROR: '$(CC65)' not found." && false)
 
+##
+# Generate configuration values in 'config/values/'.
+
 .PHONY: gen-values
 gen-values:
 ifeq ($(HAS_RUBY),true)
@@ -59,6 +69,10 @@ ifeq ($(HAS_RUBY),true)
 else
 	@(Q) echo "WARNING: '$(RUBY)' not found; files under 'config/values/' will not be generated."
 endif
+
+##
+# build: create a ROM file for NTSC and PAL, while creating a DEV one for
+# testing purposes.
 
 .PHONY: build
 build: gen-values build-partial build-pal build-full
@@ -91,3 +105,20 @@ build-pal:
 
 	$(E) "	CC	 jetpac (PAL)"
 	$(Q) $(CC65) $(CCOPTS) src/jetpac.s -C config/nrom.cfg -o "out/Jetpac (PAL).nes" 1>/dev/null
+
+##
+# release: generate ROM files which are only interesting for releases.
+
+release: clean deps gen-values build-full build-pal
+
+##
+# each: create a ROM file for each level.
+
+EACH_TARGETS := $(foreach i,$(LEVELS),out/jetpac.$(i).nes)
+
+.PHONY: each
+each: clean deps gen-values $(EACH_TARGETS)
+
+out/jetpac.%.nes:
+	$(Q) $(MAKE) build-full LEVEL=$*
+	$(Q) mv "out/Jetpac (NTSC).nes" "$@"
