@@ -44,6 +44,11 @@
     ;; of RAM left.
     zp_moved_out = $38
 
+    ;; Whether the pause message on the HUD has to be toggled. Like
+    ;; 'zp_moved_out', maybe a waste of resource to dedicate a full byte for
+    ;; this, but we have plenty of RAM left.
+    zp_pause_toggle = $39
+
     ;; Switch from the title screen to the main screen. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
     ;; will set the proper values to disable it on the next `nmi` call and set
@@ -148,11 +153,11 @@
         jsr Enemies::init
         jsr Explosions::init
 
-        ;; Initialize pause timer and whether sprites have been moved out of the
-        ;; screen.
+        ;; Initialize pause timer and some boolean values.
         lda #0
         sta zp_pause_timer
         sta Driver::zp_moved_out
+        sta Driver::zp_pause_toggle
 
         ;; Initialize variables for sprite cycling.
         sta zp_next_bullet_cycle
@@ -182,6 +187,10 @@
         ;; Let's reset the timer.
         lda #PAUSE_TIMER_VALUE
         sta zp_pause_timer
+
+        ;; Toggle the message on the HUD.
+        lda #1
+        sta Driver::zp_pause_toggle
 
         ;; Pause vs unpause.
         lda #%00001000
@@ -519,4 +528,50 @@
             rts
         .endproc
     .endif
+
+    ;; Toggle the "Paused" message from the (not quite) HUD.
+    ;;
+    ;; NOTE: only call this function from NMI code.
+    .proc hud_toggle_pause
+        lda #%00001000
+        and Globals::zp_flags
+        bne @paused
+
+        ;; Clear out the "Paused" message.
+        bit PPU::m_status
+        lda #$28
+        sta PPU::m_address
+        lda #$8D
+        sta PPU::m_address
+        lda #0
+        sta PPU::m_data
+        sta PPU::m_data
+        sta PPU::m_data
+        sta PPU::m_data
+        sta PPU::m_data
+        sta PPU::m_data
+        rts
+
+    @paused:
+        bit PPU::m_status
+        lda #$28
+        sta PPU::m_address
+        lda #$8D
+        sta PPU::m_address
+
+        lda #$2A                ; P
+        sta PPU::m_data
+        lda #$1B                ; A
+        sta PPU::m_data
+        lda #$2F                ; U
+        sta PPU::m_data
+        lda #$2D                ; S
+        sta PPU::m_data
+        lda #$1F                ; E
+        sta PPU::m_data
+        lda #$1E                ; D
+        sta PPU::m_data
+
+        rts
+    .endproc
 .endscope

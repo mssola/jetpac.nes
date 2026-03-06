@@ -24,6 +24,12 @@
     lda #$02
     sta OAM::m_dma
 
+    ;; Toggle pause message from the HUD.
+    lda Driver::zp_pause_toggle
+    beq @increase_rand
+    jsr Driver::hud_toggle_pause
+
+@increase_rand:
     ;; Increase the random seed.
     inc Prng::zp_rand
 

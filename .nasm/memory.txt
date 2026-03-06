@@ -24,6 +24,7 @@ $35: zp_bullet_timer
 $36: zp_first_enemy
 $37: zp_next_enemy_cycle
 $38: zp_moved_out
+$39: zp_pause_toggle
 $40: zp_screen_y
 $41-$42: zp_position_y
 $44: zp_velocity_y
@@ -68,4 +69,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 377/2048 (18.41%)
+- Internal RAM: 379/2048 (18.51%)
