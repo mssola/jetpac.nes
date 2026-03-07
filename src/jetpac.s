@@ -124,6 +124,7 @@
     ;; have zero as their initial values. Note that it's important to have these
     ;; variables defined before
     sta Globals::zp_flags
+    sta Globals::zp_multiplayer
     sta Joypad::zp_buttons1
     sta Joypad::zp_buttons2
     sta Player::zp_state

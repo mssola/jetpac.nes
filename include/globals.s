@@ -45,4 +45,13 @@
     ;; "kind" repeats every 8 waves. Hence, this is just a cached version of
     ;; masking `zp_level`.
     zp_level_kind = $25
+
+    ;; | Bit | Short name       | Meaning                  |
+    ;; |-----+------------------+--------------------------|
+    ;; |   7 | enabled          | Multiplayer enabled.     |
+    ;; | 6-3 | -                | Unused.                  |
+    ;; |   2 | player's 2 state | 0: over; 1: alive        |
+    ;; |   1 | player's 1 state | 0: over; 1: alive        |
+    ;; |   0 | active           | 0: player 1; 1: player 2 |
+    zp_multiplayer = $26
 .endscope

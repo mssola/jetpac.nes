@@ -89,9 +89,18 @@
         rts
     .endproc
 
-    ;; Save the selection from the menu (TODO), hide all elements from the title
+    ;; Save the selection from the menu, hide all elements from the title
     ;; screen, and return always 1.
     .proc start
+        ;; Select whether player 2 is to be alive or not.
+        lda #%00000010
+        ldx OAM::m_sprites
+        cpx #SPRITE_Y_POSITION1
+        bne @set_multi
+        ora #%10000100
+    @set_multi:
+        sta Globals::zp_multiplayer
+
         ;; Hide the sprite from the menu.
         lda #$EF
         sta OAM::m_sprites

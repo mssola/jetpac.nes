@@ -21,6 +21,7 @@ $22: zp_buttons1
 $23: zp_buttons2
 $24: zp_level
 $25: zp_level_kind
+$26: zp_multiplayer
 $30: zp_title_timer
 $32: zp_pause_timer
 $33: zp_next_bullet_cycle
@@ -69,4 +70,4 @@ $4016: m_joypad1
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 390/2048 (19.04%)
+- Internal RAM: 391/2048 (19.09%)
