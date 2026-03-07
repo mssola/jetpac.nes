@@ -49,6 +49,15 @@
     ;; this, but we have plenty of RAM left.
     zp_pause_toggle = $39
 
+    ;; Initialization routine that is to be called before enabling NMIs back for
+    ;; the first time.
+    .proc init_before_nmi
+        lda #0
+        sta Driver::zp_pause_toggle
+
+        rts
+    .endproc
+
     ;; Switch from the title screen to the main screen. Note that this function
     ;; is to be called with the PPU disabled. If that's not the case, then it
     ;; will set the proper values to disable it on the next `nmi` call and set
@@ -157,7 +166,6 @@
         lda #0
         sta zp_pause_timer
         sta Driver::zp_moved_out
-        sta Driver::zp_pause_toggle
 
         ;; Initialize variables for sprite cycling.
         sta zp_next_bullet_cycle

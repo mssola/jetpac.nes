@@ -121,7 +121,8 @@
     sta PPU::zp_control
 
     ;; Initialize other global variables which the rest of the game assume to
-    ;; have zero as their initial values.
+    ;; have zero as their initial values. Note that it's important to have these
+    ;; variables defined before
     sta Globals::zp_flags
     sta Joypad::zp_buttons1
     sta Joypad::zp_buttons2
@@ -145,6 +146,10 @@
 
     ;; Initialize some variables from the "Game Over" side of the game.
     jsr Over::init
+
+    ;; Initialize variables from the game's driver that need to be set before
+    ;; NMIs start ticking.
+    jsr Driver::init_before_nmi
 
     ;; Initialize some PAL-specific constants.
     .ifdef PAL
