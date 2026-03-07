@@ -6,12 +6,15 @@
 
     ;; If we are on a dev environment, account for any frame drops.
     .ifdef PARTIAL
-        bpl @account_for_frame_drop
+        bmi @after_frame_check
+        jmp @account_for_frame_drop
+    @after_frame_check:
     .else
-        bpl @end
+        bmi @save_registers
+        rti
     .endif
 
-    ;; Save registers.
+@save_registers:
     pha
     txa
     pha
@@ -48,7 +51,9 @@
     and #%00001000
     beq @global_flags
 
-    ;; Yeah! TODO: this is only done for player 1.
+    ;; Yeah!
+
+    ;; Update for player 1.
     bit PPU::m_status
     lda #$28
     sta PPU::m_address
@@ -59,6 +64,21 @@
     adc #$10
     sta PPU::m_data
 
+    ;; Update for player 2 if exists.
+    bit Globals::zp_multiplayer
+    bpl @unset_life_flag
+
+    bit PPU::m_status
+    lda #$28
+    sta PPU::m_address
+    lda #$56
+    sta PPU::m_address
+    lda Player::zp_lifes + 1
+    clc
+    adc #$10
+    sta PPU::m_data
+
+@unset_life_flag:
     ;; And unset the 'life' flag from the player.
     lda Player::zp_state
     and #%11110111
@@ -112,7 +132,6 @@
     tax
     pla
 
-@end:
     rti
 
     ;; If we are on a dev environment, account for any frame drops.

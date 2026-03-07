@@ -129,6 +129,20 @@
         lda #$30
         sta PPU::m_data
 
+        ;; If there is a player 2, show the little astronaut from the HUD in
+        ;; order to indicate its lifes.
+        lda Globals::zp_multiplayer
+        and #$04
+        beq @end
+        bit PPU::m_status
+        lda #$28
+        sta PPU::m_address
+        lda #$57
+        sta PPU::m_address
+        lda #$35
+        sta PPU::m_data
+
+    @end:
         rts
     .endproc
 
