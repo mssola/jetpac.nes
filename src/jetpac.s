@@ -111,7 +111,7 @@
 .endproc
 
 .proc main
-    ;; TODO: score initialization has to happen here.
+    ;; TODO: high score initialization has to happen here.
 
 @init:
     ;; Disable the PPU and zero out variables which shadow PPU registers.
@@ -239,7 +239,7 @@
     bit Globals::zp_flags
     bmi @wait_for_render_over
 
-    ;; Did the user want to start over?
+    ;; Can the player start over?
     lda Globals::zp_tmp0
     beq @main_game_loop
     jmp @init

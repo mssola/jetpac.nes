@@ -834,13 +834,25 @@
 
     ;; That's just german for "the Bart, the".
     .proc die_bart_die
-        ;; Decrement the life. If we reach zero, then there's no point on
-        ;; signaling the NMI code to render this change.
-        ;;
-        ;; TODO: this is just considering the first player only!.
-        dec Player::zp_lifes
-        beq @skip_life_update
+        ;; Decrement the life.
+        lda Globals::zp_multiplayer
+        and #$01
+        tax
+        dec Player::zp_lifes, x
+        bne @nmi_update
 
+        ;; If this poor guy is over, then mark it in the multiplayer bitmap.
+        cpx #0
+        bne @player_2_over
+        lda #%11111101
+        bne @set_multi
+    @player_2_over:
+        lda #%11111011
+    @set_multi:
+        and Globals::zp_multiplayer
+        sta Globals::zp_multiplayer
+
+    @nmi_update:
         ;; Notify NMI code to render lifes again, as they have changed.
         lda Player::zp_state
         ora #%00001000
@@ -862,11 +874,47 @@
         ora Globals::zp_flags
         sta Globals::zp_flags
 
+        ;; Try to switch the player.
+        jsr Player::try_player_switch
+
         ;; Create an explosion.
         lda Player::zp_screen_y
         sta Globals::zp_arg2
         lda Player::zp_screen_x
         sta Globals::zp_arg3
         JAL Explosions::create
+    .endproc
+
+    ;; Try to switch the active player if we are in multiplayer.
+    .proc try_player_switch
+        ;; If multiplayer is not enabled, don't even bother.
+        bit Globals::zp_multiplayer
+        bpl @end
+
+        lda Globals::zp_multiplayer
+        tax
+        and #$01
+        beq @try_player_2
+
+        ;; Switch to player 1 if it's still alive.
+        txa
+        and #$02
+        beq @end
+        txa
+        and #$FE
+        bne @set_and_end
+
+    @try_player_2:
+        ;; Switch to player 2 if it's still alive.
+        txa
+        and #$04
+        beq @end
+        txa
+        ora #$01
+
+    @set_and_end:
+        sta Globals::zp_multiplayer
+    @end:
+        rts
     .endproc
 .endscope

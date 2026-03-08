@@ -1,4 +1,8 @@
 - HEADER: 16/16 (100%)
+<<<<<<< HEAD
 - ROM0: 6609/32762 (20.17%)
+=======
+- ROM0: 6658/32762 (20.32%)
+>>>>>>> 823e1f6ed102 (State game over only when all players are dead)
 - ROMV: 6/6 (100%)
 - ROM2: 8192/8192 (100%)

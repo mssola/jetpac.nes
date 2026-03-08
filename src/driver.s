@@ -258,8 +258,9 @@
         lda Explosions::zp_active
         bne @sprite_cycling
 
-        ;; After all the explosions have been done, do we have any life left?
-        lda Player::zp_lifes
+        ;; After all the explosions have been done, is any player alive?
+        lda Globals::zp_multiplayer
+        and #%00000110
         bne @reset_timer
 
         ;; No! Toggle the game over bit.

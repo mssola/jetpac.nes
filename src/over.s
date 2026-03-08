@@ -147,15 +147,13 @@
         rts
     .endproc
 
-    ;; Render the regular "Game over player X" screen.
-    ;;
-    ;; TODO: multiplayer support.
+    ;; Render the regular "Game over" screen.
     .proc render_regular_game_over
         ;; Set the position.
         bit PPU::m_status
         ldx #$29
         stx PPU::m_address
-        ldx #$67
+        ldx #$6C
         stx PPU::m_address
 
         ;; And just iterate over the "message" until we reach the end of string
@@ -186,11 +184,7 @@
     message:
         ;; "GAME "
         .byte $21, $1B, $27, $1F, $00
-        ;; "OVER "
-        .byte $29, $30, $1F, $2C, $00
-        ;; "PLAYER "
-        .byte $2A, $26, $1B, $33, $1F, $2C, $00
-        ;; "1"
-        .byte $11, $FF
+        ;; "OVER"
+        .byte $29, $30, $1F, $2C, $FF
     .endproc
 .endscope
