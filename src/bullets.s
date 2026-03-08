@@ -104,7 +104,7 @@
     @check_bullets_pressed:
         ;; Is the B button pressed? If not go to `@move_bullets` directly.
         lda #(Joypad::BUTTON_B)
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @move_bullets
 
         ;; The B button was pressed. Reset the bullet timer.

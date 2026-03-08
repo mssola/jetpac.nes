@@ -125,8 +125,8 @@
     ;; variables defined before
     sta Globals::zp_flags
     sta Globals::zp_multiplayer
-    sta Joypad::zp_buttons1
-    sta Joypad::zp_buttons2
+    sta Joypad::zp_buttons
+    sta Joypad::zp_prev
     sta Player::zp_state
 
     ;; Initialize the level. We allow the build system to pass its own value for
@@ -187,7 +187,11 @@
     sta PPU::m_mask
 
 @main_game_loop:
-    READ_JOYPAD1
+    ;; Select the joypad from the active player and read it.
+    lda Globals::zp_multiplayer
+    and #$01
+    tax
+    READ_JOYPAD_X
 
     lda Globals::zp_flags
     and #%00000011

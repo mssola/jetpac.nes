@@ -179,7 +179,7 @@
 
         ;; Check if the player is toggling the `pause` state.
         lda #(Joypad::BUTTON_START | Joypad::BUTTON_SELECT)
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @skip_pause_handling
 
         ;; What does the timer say, is the player allowed to do it?

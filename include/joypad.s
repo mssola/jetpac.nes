@@ -9,17 +9,18 @@
     BUTTON_LEFT   = 1 << 1
     BUTTON_RIGHT  = 1 << 0
 
-    ;; Port addresses for controllers.
-    m_joypad1 = $4016
-    ;; m_joypad2 = $4017
+    ;; Port address for starting the latch process for both controllers and
+    ;; reading from Joypad 1. The second Joypad can be accessed by reading from
+    ;; $4017, which means that functions down below will simply use an indexed
+    ;; load with the proper value on the index register (i.e. +1).
+    m_joypad = $4016
 
     ;; The previous reading from the latest read controller.
-    zp_prev     = $21
+    zp_prev = $21
 
-    ;; After running a `read_*` function these two variables will contain the
-    ;; given result.
-    zp_buttons1 = $22
-    zp_buttons2 = $23
+    ;; After running a `read_*` function this variable will contain the given
+    ;; result.
+    zp_buttons = $22
 
     ;;;
     ;; Safely read a controller via a re-read algorithm the joypad as indexed by
@@ -35,11 +36,11 @@
         ;; Mario Bros. 3, it should work for us too :P). Otherwise there is the
         ;; algorithm via OAM DMA, but it sure is tricky.
     @reread:
-        lda Joypad::zp_buttons1, x
+        lda Joypad::zp_buttons
         tay
         jsr Joypad::unsafe_read_x
         tya
-        cmp Joypad::zp_buttons1, x
+        cmp Joypad::zp_buttons
         bne @reread
 
         rts
@@ -52,26 +53,26 @@
     .proc unsafe_read_x
         ;; Start the latch process.
         lda #$01
-        sta Joypad::m_joypad1
-        sta Joypad::zp_buttons1, x   ; Bit as a guard for the loop below.
+        sta Joypad::m_joypad
+        sta Joypad::zp_buttons   ; Bit as a guard for the loop below.
         lsr
-        sta Joypad::m_joypad1
+        sta Joypad::m_joypad
 
         ;; Now the joypad is ready to accept reads.
     @loop:
-        lda Joypad::m_joypad1, x
+        lda Joypad::m_joypad, x
         and #%00000011              ; Ignore bits other than controller.
         cmp #$01                    ; Set carry if and only if nonzero.
-        rol Joypad::zp_buttons1, x   ; Carry -> bit 0; bit 7 -> Carry
+        rol Joypad::zp_buttons      ; Carry -> bit 0; bit 7 -> Carry
         bcc @loop
         rts
     .endproc
 .endscope
 
-;; Shortcut for reading the joypad from the first player safely.
-.macro READ_JOYPAD1
-    ldx #$00
-    lda Joypad::zp_buttons1
+;; Shortcut for reading the joypad indexed by 'x' (0 for controller 1; 1 for
+;; controller 2).
+.macro READ_JOYPAD_X
+    lda Joypad::zp_buttons
     sta Joypad::zp_prev
     jsr Joypad::read_x
 .endmacro

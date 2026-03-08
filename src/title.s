@@ -38,7 +38,7 @@
         bne @end
 
         lda #Joypad::BUTTON_UP
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @check_down
 
         lda #SPRITE_Y_POSITION0
@@ -49,7 +49,7 @@
 
     @check_down:
         lda #Joypad::BUTTON_DOWN
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @check_select
 
         lda #SPRITE_Y_POSITION1
@@ -60,13 +60,13 @@
 
     @check_select:
         lda #Joypad::BUTTON_SELECT
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         bne @do_select
 
         ;; If none of the above has been pressed, our only possibility is the
         ;; start button. If that's the case, jump there, otherwise quit.
         lda #(Joypad::BUTTON_START | Joypad::BUTTON_A)
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @end
         JAL start
 

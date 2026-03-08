@@ -249,7 +249,7 @@
         bit zp_state
         bpl @check_thrust
         lda #Joypad::BUTTON_DOWN
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @check_thrust
         lda #0
         sta zp_velocity_y
@@ -258,7 +258,7 @@
     @check_thrust:
         ;; Check if the player is asking to thrust, otherwise apply gravity.
         lda #(Joypad::BUTTON_UP | Joypad::BUTTON_A)
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @set_gravity
 
         ;; Player is throttling, reflect that on the player's state.
@@ -349,7 +349,7 @@
 
     .proc update_horizontal_position
         lda #Joypad::BUTTON_LEFT
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @check_right
 
         ;; We are facing left, reflect that on the state and the sprite.
@@ -374,7 +374,7 @@
         ;; Same as the part above but applied to going right.
     @check_right:
         lda #Joypad::BUTTON_RIGHT
-        and Joypad::zp_buttons1
+        and Joypad::zp_buttons
         beq @nothing
 
         lda #%01000100
