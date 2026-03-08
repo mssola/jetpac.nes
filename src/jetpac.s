@@ -142,8 +142,13 @@
         sta Globals::zp_level_kind
     .endif
 
-    ;; Initialize the assets for the game.
+    ;; Initialize the assets for the game. If the first sprite is not
+    ;; initialized to zero, then we are not coming from reset() but from
+    ;; starting after a "Game over". In this case skip this initialization.
+    lda OAM::m_address
+    bne @skip_assets
     jsr Assets::init
+@skip_assets:
 
     ;; Initialize some variables from the "Game Over" side of the game.
     jsr Over::init
@@ -242,6 +247,12 @@
     ;; Can the player start over?
     lda Globals::zp_tmp0
     beq @main_game_loop
+
+    ;; We will skip the initialization of the assets so to avoid writing into
+    ;; the first nametable when it's just fine. That being said, we still need
+    ;; to prepare palettes for the title screen. Do it now before starting over.
+    jsr Assets::prepare_for_title_screen
+
     jmp @init
 .endproc
 
