@@ -8,7 +8,9 @@
     zp_arg1 = $01
     zp_arg2 = $02
     zp_arg3 = $03
-    ;; zp_arg4 = $04
+
+    ;; Argument reserved _only_ for NMI code.
+    zp_nmi_reserved = $04
 
     ;;;
     ;; Random values that can be used inside of functions for temporary values

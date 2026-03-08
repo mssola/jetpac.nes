@@ -2,7 +2,7 @@
 
 .scope Driver
     ;; Timer for the player to be able to pick up the joypad upon entering the
-    ;; game (either when transitioning from the title or when losing a life).
+    ;; game (either when transitioning from the title or after losing a life).
     ;;
     ;; NOTE: this memory address is shared with `zp_title_timer`, as they can
     ;; never conflict with each other.
@@ -14,6 +14,23 @@
     .else
         PLAYER_TIMER_VALUE = PLAYER_TIMER_FULL_VALUE
     .endif
+
+    ;; The amount of time it's allowed to pass before changing the blinking
+    ;; animation for the "1UP"/"2UP" strings from the HUD.
+    ;;
+    ;; NOTE: this only applies to the real game (i.e. we don't care about
+    ;; 'PLAYER_TIMER_DEV_VALUE').
+    BLINKING_TIME = PLAYER_TIMER_FULL_VALUE / 8
+
+    ;; Bitmap containing how NMI code should proceed with the blinking
+    ;; animation. Only two bits are used:
+    ;;   - 7: whether the blinking animation should even be considered.
+    ;;   - 6: the blinking phase.
+    zp_blink_status = $2E
+
+    ;; The timer for the blinking animation. Initialized to 'BLINKING_TIME', the
+    ;; blinking phase is changed whenever it reaches zero.
+    zp_blink_timer = $2F
 
     .ifdef PAL
         ;; Frame counter which resets every 5 frames.
@@ -54,6 +71,7 @@
     .proc init_before_nmi
         lda #0
         sta Driver::zp_pause_toggle
+        sta Driver::zp_blink_status
 
         rts
     .endproc
@@ -92,7 +110,13 @@
 
         ;; Setup the player timer.
         lda #PLAYER_TIMER_VALUE
-        sta zp_player_timer
+        sta Driver::zp_player_timer
+
+        ;; Initialize the blinking animation.
+        lda #BLINKING_TIME
+        sta Driver::zp_blink_timer
+        lda #0
+        sta Driver::zp_blink_status
 
         ;; Initialize lifes for both players.
         lda #4
@@ -151,12 +175,34 @@
         dec zp_player_timer
         beq @load_player
 
-        ;; TODO: items falling down.
-        ;; TODO: blinking of the selected player (every HZ count?).
+        ;; Decrement the blinking timer. If it reaches zero, then it's time to
+        ;; change its phase.
+        dec Driver::zp_blink_timer
+        bne @no_update
 
+        ;; Tell NMI code to change the blinking animation, and flip the bit
+        ;; regulating which phase.
+        lda Driver::zp_blink_status
+        eor #%01000000
+        ora #%10000000
+        sta Driver::zp_blink_status
+
+        ;; And initialize again the blinking timer.
+        lda #BLINKING_TIME
+        sta Driver::zp_blink_timer
+
+        ;; TODO: items falling down.
+
+    @no_update:
         rts
 
     @load_player:
+        ;; Clear out any leftovers from the blinking animation.
+        lda #%10000000
+        sta Driver::zp_blink_status
+        lda #0
+        sta Driver::zp_blink_timer
+
         jsr Player::init
         jsr Bullets::init
         jsr Enemies::init
@@ -579,6 +625,58 @@
         lda #$1F                ; E
         sta PPU::m_data
         lda #$1E                ; D
+        sta PPU::m_data
+
+        rts
+    .endproc
+
+    ;; Toggle the blinking animations from the "1UP"/"2UP" strings on the HUD
+    ;; depending on the currently selected player.
+    ;;
+    ;; This function expects the 'Globals::zp_nmi_reserved' to be set with the
+    ;; addition to be performed on each base character in order to set the
+    ;; proper animation phase (i.e. either "#$00" or "#$70").
+    ;;
+    ;; NOTE: only call this function from NMI code.
+    .proc blink_player_selection
+        bit PPU::m_status
+
+        ;; Which player are we talking about?
+        lda Globals::zp_multiplayer
+        and #$01
+        bne @player_2
+
+        ;; Player 1.
+        lda #$28
+        sta PPU::m_address
+        lda #$44
+        sta PPU::m_address
+        lda #$11
+        bne @set_data
+    @player_2:
+        ldx #$12
+        lda #$28
+        sta PPU::m_address
+        lda #$5A
+        sta PPU::m_address
+        lda #$12
+
+    @set_data:
+        ;; 1/2
+        clc
+        adc Globals::zp_nmi_reserved
+        sta PPU::m_data
+
+        ;; 'U'
+        lda #$2F
+        clc
+        adc Globals::zp_nmi_reserved
+        sta PPU::m_data
+
+        ;; 'P'
+        lda #$2A
+        clc
+        adc Globals::zp_nmi_reserved
         sta PPU::m_data
 
         rts

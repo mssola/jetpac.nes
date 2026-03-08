@@ -46,6 +46,19 @@
         jsr Driver::pal_handler
     .endif
 
+    ;; Handle player selection blinking.
+    bit Driver::zp_blink_status
+    bpl @update_lifes
+
+    ;; Sprinkle, sprinkle!
+    lda #0
+    bvc @set_blinking
+    lda #$70
+@set_blinking:
+    sta Globals::zp_nmi_reserved
+    jsr Driver::blink_player_selection
+
+@update_lifes:
     ;; Do we need to update the lifes from players on the HUD?
     lda Player::zp_state
     and #%00001000

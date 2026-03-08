@@ -2,6 +2,7 @@ $00: zp_arg0
 $01: zp_arg1
 $02: zp_arg2
 $03: zp_arg3
+$04: zp_nmi_reserved
 $05: zp_tmp0
 $06: zp_tmp1
 $07: zp_tmp2
@@ -21,6 +22,8 @@ $22: zp_buttons
 $24: zp_level
 $25: zp_level_kind
 $26: zp_multiplayer
+$2E: zp_blink_status
+$2F: zp_blink_timer
 $30: zp_title_timer
 $32: zp_pause_timer
 $33: zp_next_bullet_cycle
@@ -69,4 +72,4 @@ $4016: m_joypad
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 390/2048 (19.04%)
+- Internal RAM: 393/2048 (19.19%)
