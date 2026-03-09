@@ -7,9 +7,9 @@
 .macro FIXED_POINT_POSITION_TO_SCREEN POS_ADDR
     ;; We save the high byte into a temporary value, and we load the low byte
     ;; into the accumulator.
-    lda POS_ADDR + 1            ; asan:ignore
+    lda POS_ADDR + 1
     sta Globals::zp_tmp0
-    lda POS_ADDR                ; asan:ignore
+    lda POS_ADDR
 
     ;; And now it's a matter of rotating the high byte into the low one to
     ;; match a full byte.
