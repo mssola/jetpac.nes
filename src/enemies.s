@@ -214,7 +214,7 @@
         ldx #0
         ldy #ENEMIES_POOL_CAPACITY
     @enemies_init_loop:
-        jsr init_x
+        jsr init_enemy_x
         dey
         bne @enemies_init_loop
 
@@ -226,7 +226,7 @@
     ;; NOTE: the 'x' register will be advanced by the amount of bytes it takes
     ;; to store an enemy on the poll (i.e. #SIZEOF_POOL_ITEM bytes).
     ;; NOTE: the 'y' register is not touched.
-    .proc init_x
+    .proc init_enemy_x
         ;; Pick the palette to be used for the enemy.
         lda Enemies::zp_palette
         clc
@@ -364,9 +364,9 @@
         bne @increase_index_next
 
         ;; Initialize the slot as a new 'valid' enemy.
-        jsr init_x
+        jsr init_enemy_x
 
-        ;; The above 'init_x' call already updates the 'x' register to the
+        ;; The above 'init_enemy_x' call already updates the 'x' register to the
         ;; next enemy. Jump to '@next', not '@increase_index_next'.
         jmp @next
 
