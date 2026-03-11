@@ -8,7 +8,7 @@
     ;; never conflict with each other.
     zp_player_timer = $30       ; asan:ignore
     PLAYER_TIMER_FULL_VALUE = HZ * 3
-    PLAYER_TIMER_DEV_VALUE = HZ / 2
+    PLAYER_TIMER_DEV_VALUE = HZ / 4
     .ifdef PARTIAL
         PLAYER_TIMER_VALUE = PLAYER_TIMER_DEV_VALUE
     .else

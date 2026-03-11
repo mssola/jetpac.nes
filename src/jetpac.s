@@ -163,21 +163,12 @@
         sta Driver::zp_pal_counter
     .endif
 
-    ;; We shadow the PPU control register in memory. Depending on the `make`
-    ;; target we might need to switch directly to the main game. Otherwise we go
-    ;; into the title as expected.
-    .ifdef PARTIAL
-        jsr Driver::switch
-
-        lda PPU::zp_control
-        sta PPU::m_control
-    .else
-        jsr Title::init
-
-        lda #%10001000
-        sta PPU::zp_control
-        sta PPU::m_control
-    .endif
+    ;; We shadow the PPU control register in memory. Otherwise we go into the
+    ;; title as expected.
+    jsr Title::init
+    lda #%10001000
+    sta PPU::zp_control
+    sta PPU::m_control
 
     cli
 
