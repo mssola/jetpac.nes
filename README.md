@@ -27,7 +27,9 @@ what's different from the original and what to expect from this port.
 The original game was developed and published by Ultimate Play the Game and
 released for the ZX Spectrum and VIC-20 in 1983 and the BBC Micro in 1984. Thus,
 the original idea is not mine, and I only did the porting to the NES/Famicom
-platform.
+platform. Similarly, all the assets and the cover image are just sloppy ports
+that I did from the original game. Thus, all credits for the original idea and
+artistic choices are entirely on the original authors, not me.
 
 This port is released under the
 [GPLv3+](http://www.gnu.org/licenses/gpl-3.0.txt), Copyright (C) 2023-<i>Ω</i>
