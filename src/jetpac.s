@@ -45,6 +45,7 @@
 .include "player.s"
 .include "enemies.s"
 .include "bullets.s"
+.include "items.s"
 .include "title.s"
 .include "over.s"
 .include "driver.s"

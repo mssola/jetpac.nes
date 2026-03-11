@@ -164,7 +164,7 @@
     palettes:
         ;; Background
         ;; 0: score
-        .byte $0F, $30, $2C, $28
+        .byte $0F, $30, $30, $28
         ;; 1: floating platforms
         .byte $0F, $2C, $30, $2A
         ;; 2: ground

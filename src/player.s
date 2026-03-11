@@ -841,6 +841,8 @@
         dec Player::zp_lifes, x
         bne @nmi_update
 
+        ;; TODO: if it was grabbing an item, turn it into 'falling' state.
+
         ;; If this poor guy is over, then mark it in the multiplayer bitmap.
         cpx #0
         bne @player_2_over

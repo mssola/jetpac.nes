@@ -126,6 +126,9 @@
         ora #%00001000
         sta Player::zp_state
 
+        ;; Prepare the items for the scene.
+        jsr Items::prepare_scene
+
         ;; Mark the state of the game as "game". That is, the player has
         ;; started. Also set the `ppu` flag and unset the `title over` one.
         lda #%01000001
@@ -158,6 +161,15 @@
         NEXT_BULLET_INDEX_X
         dey
         bne @bullets_reset_loop
+
+        ;; Invalidate all items.
+        ldx #0
+        ldy #Items::POOL_CAPACITY
+    @items_reset_loop:
+        sta Items::zp_pool_base, x
+        NEXT_ITEM_INDEX_X
+        dey
+        bne @items_reset_loop
 
         ;; Set that we have done this operation so it's not done in future
         ;; cycles.
@@ -208,6 +220,7 @@
         jsr Bullets::init
         jsr Enemies::init
         jsr Explosions::init
+        jsr Items::init
 
         ;; Initialize pause timer and some boolean values.
         lda #0
@@ -286,6 +299,7 @@
         jsr Enemies::update
     @do_minimal_update:
         jsr Explosions::update
+        jsr Items::update
 
         ;; Has the player died? If it is dead, then we need to remove all
         ;; sprites except for objects and explosions, and whenever
@@ -414,11 +428,24 @@
     @set_next_enemies_cycle:
         stx zp_next_enemy_cycle
 
-        ;; TODO: ensure 1 item
-        ;; iny
-        ;; iny
-        ;; iny
-        ;; iny
+        ;; Allocate all valid items. Items, contrary to other sprites, don't get
+        ;; the special "you get a fixed first position" like others, mainly
+        ;; because there are so few of them on screen at any given time. For
+        ;; this reason as well, it's ok to just dump them all here before the
+        ;; rest of sprites are churned in.
+        ldx #0
+    @rest_o_items:
+        cpx #Items::POOL_CAPACITY_BYTES
+        beq @rest_o_bullets
+
+        lda Items::zp_pool_base, x
+        cmp #$FF
+        beq @next_item
+        jsr Items::allocate_x_y
+
+    @next_item:
+        NEXT_ITEM_INDEX_X
+        jmp @rest_o_items
 
         ;; Allocate the rest of valid bullets from the pool.
         ldx #0
@@ -483,7 +510,7 @@
         ;; enemies, then jump to items. If the current indexed enemy is the one
         ;; we allocated as the first fixed one, then skip it.
         cpx #Enemies::ENEMIES_POOL_CAPACITY_BYTES
-        beq @rest_o_items
+        beq @do_explosions
         cpx zp_first_enemy
         beq @next_enemy
 
@@ -505,9 +532,6 @@
     @next_enemy:
         NEXT_ENEMY_INDEX_X
         jmp @rest_o_enemies_loop
-
-    @rest_o_items:
-        ;;; TODO
 
         ;; At the very end, we allocate any active explosion.
     @do_explosions:

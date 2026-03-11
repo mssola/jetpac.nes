@@ -48,6 +48,10 @@ $7F: zp_active
 $80: zp_control
 $81: zp_mask
 $A0-$BD: zp_pool_base
+$C0-$C8: zp_pool_base
+$C9: zp_pool_index
+$CA: zp_state
+$CB: zp_collected
 $D1: zp_tiles
 $D2-$D3: zp_movement_fn
 $D4: zp_pool_index
@@ -57,6 +61,7 @@ $E0: zp_pool_size
 $E1: zp_last_allocated_index
 $E2: zp_current_bullet_y
 $E3: zp_current_bullet_x
+$E7-$EF: zp_current_tiles
 $F0-$FF: zp_current_tiles
 $0200-$02FF: m_sprites
 $2000: m_control
@@ -72,4 +77,4 @@ $4016: m_joypad
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 393/2048 (19.19%)
+- Internal RAM: 414/2048 (20.21%)

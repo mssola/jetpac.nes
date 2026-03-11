@@ -62,7 +62,7 @@
     ;; Do we need to update the lifes from players on the HUD?
     lda Player::zp_state
     and #%00001000
-    beq @global_flags
+    beq @shuttle_update
 
     ;; Yeah!
 
@@ -97,9 +97,21 @@
     and #%11110111
     sta Player::zp_state
 
-@global_flags:
-    ;; TODO: some actions here will depend on the status of the game...
+@shuttle_update:
+    ;; Should the shuttle be updated?
     lda Globals::zp_flags
+    tax
+    and #%00100000
+    beq @game_status
+    jsr Items::update_shuttle
+
+    ;; And unset the flag.
+    lda Globals::zp_flags
+    and #%11011111
+    sta Globals::zp_flags
+
+@game_status:
+    txa
     and #%00000001
     bne @ppu_registers
 

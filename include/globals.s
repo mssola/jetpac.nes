@@ -33,7 +33,7 @@
     ;; |-----+------------+-------------------------------------------------------------|
     ;; |   7 | render     | Game logic is over, block main code until NMI code is over. |
     ;; |   6 | ppu        | PPU registers have to be touched.                           |
-    ;; |   5 | -          | Unused.                                                     |
+    ;; |   5 | shuttle    | The shuttle elements from the background have to change.    |
     ;; |   4 | dead       | Player has just died.                                       |
     ;; |   3 | paused     | Game is in pause state.                                     |
     ;; |   2 | title over | We are transitioning from title to game.                    |
