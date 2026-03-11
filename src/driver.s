@@ -151,6 +151,7 @@
         bne @enemies_reset_loop
 
         ;; Invalidate all bullets.
+        ldx #0
         ldy #Bullets::BULLETS_POOL_CAPACITY
     @bullets_reset_loop:
         sta Bullets::zp_pool_base, x
