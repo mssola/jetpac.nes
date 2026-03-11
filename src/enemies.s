@@ -10,7 +10,40 @@
     inx
 .endmacro
 
+;; Increase the value from the enemy indexed by ADDR and the 'x' register on the
+;; pool. The value will be increased at the same rate on PAL and on NTSC, even
+;; if the way to guarantee that is different between these two versions.
+.macro INC_MOVEMENT_X ADDR
+    .ifdef PAL
+        lda ADDR, x
+        clc
+        adc Enemies::zp_movement_arg
+        sta ADDR, x
+    .else
+        inc ADDR, x
+    .endif
+.endmacro
+
+;; Decrease the value from the enemy indexed by ADDR and the 'x' register on the
+;; pool. The value will be decreased at the same rate on PAL and on NTSC, even
+;; if the way to guarantee that is different between these two versions.
+.macro DEC_MOVEMENT_X ADDR
+    .ifdef PAL
+        lda ADDR, x
+        sec
+        sbc Enemies::zp_movement_arg
+        sta ADDR, x
+    .else
+        dec ADDR, x
+    .endif
+.endmacro
+
 .scope Enemies
+    .ifdef PAL
+        ;; Shadowed from 'Driver::zp_pal_counter'.
+        zp_pal_counter = $31    ; asan:ignore
+    .endif
+
     ;; Maximum amount of enemies allowed on screen at the same time.
     ;;
     ;; NOTE: EXPLOSIONS_POOL_CAPACITY depends on this value. If you update this,
@@ -64,8 +97,12 @@
     ;; the movement handler. Check the documentation on movement handlers.
     zp_pool_index = $D4
 
-    ;; An extra argument that enemies can have depending on their type. This is
-    ;; useful for different waves with the same algorithm but different speeds.
+    ;; An extra argument for enemies which depends on their type. This is used
+    ;; in two ways:
+    ;;   1. Make the PAL version the same as NTSC (by incrementing its value
+    ;;      when needed to match it).
+    ;;   2. Re-use the same algorithms for different enemies with the same
+    ;;      pattern but different velocities.
     zp_movement_arg = $D5
 
     ;; The palette to be used in the next enemy initialization.
@@ -154,8 +191,15 @@
         sta Enemies::zp_movement_fn + 1
 
         ;; Initialize the enemy arg, which is always 1 except for homing
-        ;; attacks.
+        ;; attacks. This initialized is increased by one on PAL if the PAL
+        ;; counter requires it to.
         ldy #1
+        .ifdef PAL
+            lda Enemies::zp_pal_counter
+            bne @skip_uptick
+            iny
+        @skip_uptick:
+        .endif
         cpx #3
         bne @set_arg
         iny
@@ -694,16 +738,10 @@
         lda Enemies::zp_pool_base, x
         and #$80
         beq @move_left
-        lda Enemies::zp_pool_base + 2, x
-        clc
-        adc Enemies::zp_movement_arg
-        sta Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         jmp @do_counter
     @move_left:
-        lda Enemies::zp_pool_base + 2, x
-        sec
-        sbc Enemies::zp_movement_arg
-        sta Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
 
         ;; Decrement the counter from the 'extra' state. If it reaches zero,
         ;; then we should do some downward movement. Otherwise we just go to
@@ -721,10 +759,10 @@
         tya
         and #$01
         beq @up
-        inc Enemies::zp_pool_base + 1, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 1
         jmp @compute_next_counter
     @up:
-        dec Enemies::zp_pool_base + 1, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 1
 
     @compute_next_counter:
         ;; Yes, doing an index on a pre-computed ROM table would've been faster,
@@ -779,14 +817,14 @@
         ;; Perform a collision check with the upper left boundary.
         jsr Background::collides
         beq @check_up_right
-        JAL bite_the_dust
+        JAL Enemies::bite_the_dust
 
     @check_up_right:
         ;; Increase the X tile coordinate to check for the upper right boundary.
         inc Globals::zp_arg1
         jsr Background::collides
         beq @check_down
-        JAL bite_the_dust
+        JAL Enemies::bite_the_dust
 
     @check_down:
         ;; Now let's go for bottom boundaries. The notion of "bottom" is
@@ -803,7 +841,7 @@
         ;; And the actual check.
         jsr Background::collides
         beq @check_down_left
-        JAL bite_the_dust
+        JAL Enemies::bite_the_dust
 
     @check_down_left:
         ;; So now the only corner left is the bottom left one. Adjust the X tile
@@ -811,7 +849,7 @@
         dec Globals::zp_arg1
         jsr Background::collides
         beq @end
-        JAL bite_the_dust
+        JAL Enemies::bite_the_dust
 
     @end:
         rts
@@ -826,10 +864,10 @@
         lda Enemies::zp_pool_base, x
         and #$80
         beq @move_left
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         jmp @do_vertical
     @move_left:
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
 
     @do_vertical:
         ;; The vertical movement works the same way, but taking into account its
@@ -839,10 +877,10 @@
         lda Enemies::zp_pool_base + 3, x
         and #$01
         beq @move_up
-        inc Enemies::zp_pool_base + 1, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 1
         jmp @check_collision
     @move_up:
-        dec Enemies::zp_pool_base + 1, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 1
 
         ;; Collision checking.
     @check_collision:
@@ -885,7 +923,7 @@
 
         ;; Move downwards once, which cancels the movement set at the beginning
         ;; of the function.
-        inc Enemies::zp_pool_base + 1, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 1
 
         rts
 
@@ -921,10 +959,10 @@
         ;; stucked or other weird situations.
         and #$80
         beq @bounce_left
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         rts
     @bounce_left:
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
         rts
 
         ;; Last but not least, let's see if the enemy collides on its bottom
@@ -962,7 +1000,7 @@
         sta Enemies::zp_pool_base + 3, x
 
         ;; Make it bounce up.
-        dec Enemies::zp_pool_base + 1, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 1
 
         rts
     .endproc
@@ -1058,10 +1096,10 @@
         beq @move_left
         iny
         iny
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         jmp @after_horizontal
     @move_left:
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
 
     @after_horizontal:
         ;; We store in a temporary value how much the X tile coordinates will
@@ -1115,10 +1153,10 @@
         ;; stucked or other weird situations.
         and #$80
         beq @bounce_left
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         rts
     @bounce_left:
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
         rts
     .endproc
 
@@ -1150,7 +1188,7 @@
         tay
         and #$02
         beq @zero_state
-        JAL basic
+        JAL Enemies::basic
 
         ;; It's the first state of the enemy (i.e. just moving up and down).
     @zero_state:
@@ -1191,10 +1229,10 @@
         and #$01
         beq @go_down
 
-        inc Enemies::zp_pool_base + 1, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 1
         jmp @increase_timer
     @go_down:
-        dec Enemies::zp_pool_base + 1, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 1
 
     @increase_timer:
         tya
@@ -1322,10 +1360,10 @@
         lda Enemies::zp_pool_base + 3, x
         and #$80
         beq @think_right
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
         rts
     @think_right:
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         rts
 
         ;;;
@@ -1342,20 +1380,20 @@
         ;; Perform vertical motion.
         and #$01
         beq @move_up
-        inc Enemies::zp_pool_base + 1, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 1
         jmp @move_horizontal
     @move_up:
-        dec Enemies::zp_pool_base + 1, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 1
 
         ;; And now horizontal motion.
     @move_horizontal:
         lda Enemies::zp_pool_base, x
         and #$80
         beq @move_left
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         jmp @check_collisions
     @move_left:
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
 
         ;;;
         ;; Collision checking is quite similar to the one on bouncing. The
@@ -1396,7 +1434,7 @@
         ;; Bounce down a bit to cancel the movement we've done, and set the 'D'
         ;; bit from the 'extra' value to downward movement.
         ldx Enemies::zp_pool_index
-        inc Enemies::zp_pool_base + 1, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 1
         lda Enemies::zp_pool_base + 3, x
         ora #$01
         sta Enemies::zp_pool_base + 3, x
@@ -1422,7 +1460,7 @@
         ;; Bounce right a bit to cancel the movement we've done, and set the 'D'
         ;; bit from the 'state' value to right movement.
         ldx Enemies::zp_pool_index
-        inc Enemies::zp_pool_base + 2, x
+        INC_MOVEMENT_X Enemies::zp_pool_base + 2
         lda Enemies::zp_pool_base, x
         ora #$7F
         sta Enemies::zp_pool_base, x
@@ -1432,7 +1470,7 @@
         ;; Bounce left a bit to cancel the movement we've done, and set the 'D'
         ;; bit from the 'state' value to left movement.
         ldx Enemies::zp_pool_index
-        dec Enemies::zp_pool_base + 2, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 2
         lda Enemies::zp_pool_base, x
         and #$7F
         sta Enemies::zp_pool_base, x
@@ -1461,7 +1499,7 @@
         ;; Bounce up a bit to cancel the movement we've done, and set the 'D'
         ;; bit from the 'extra' value to upwards movement.
         ldx Enemies::zp_pool_index
-        dec Enemies::zp_pool_base + 1, x
+        DEC_MOVEMENT_X Enemies::zp_pool_base + 1
         lda Enemies::zp_pool_base + 3, x
         and #$FE
         sta Enemies::zp_pool_base + 3, x

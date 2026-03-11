@@ -562,14 +562,21 @@
         .proc pal_handler
             ;; Check if 5 frames have passed since last counter reset.
             lda Driver::zp_pal_counter
+            beq @reset_movement_arg
             cmp #4
             beq @do_handle
 
+        @player_timer_reset:
             ;; Nope! Reset the player's step on PAL and increase the counter.
             lda #1
             sta Player::zp_step_on_pal
             inc Driver::zp_pal_counter
             bne @end
+
+        @reset_movement_arg:
+            ;; Restore the enemy movement to the same value as NTSC.
+            dec Enemies::zp_movement_arg
+            jmp @player_timer_reset
 
         @do_handle:
             ;; Increase the step just for this frame and reset the counter.
@@ -579,6 +586,11 @@
             sta Player::zp_step_on_pal
             lda #0
             sta Driver::zp_pal_counter
+
+            ;; Increase the movement arg for this frame. This way we catch up to
+            ;; the NTSC real velocity on screen.
+            inc Enemies::zp_movement_arg
+
         @end:
             rts
         .endproc
