@@ -55,23 +55,21 @@
     ;; Same as `zp_next_bullet_cycle` but for enemies.
     zp_next_enemy_cycle = $37
 
-    ;; Whether sprites have already been moved out in the 'move_sprites_out'
-    ;; situation. It's probably a waste of resources to spend a full byte for
-    ;; this, but I didn't see where to put it either, and we still have plenty
-    ;; of RAM left.
-    zp_moved_out = $38
-
-    ;; Whether the pause message on the HUD has to be toggled. Like
-    ;; 'zp_moved_out', maybe a waste of resource to dedicate a full byte for
-    ;; this, but we have plenty of RAM left.
-    zp_pause_toggle = $39
+    ;; Bitmap of various boolean values lumped together.
+    ;;
+    ;; |SP-- ----|
+    ;; |
+    ;; |- S: whether sprites have already been moved out in the
+    ;; |     'move_sprites_out' situation.
+    ;; |- P: whether the pause message on the HUD has to be toggled.
+    zp_flags = $38
 
     ;; Initialization routine that is to be called before enabling NMIs back for
     ;; the first time.
     .proc init_before_nmi
         lda #0
-        sta Driver::zp_pause_toggle
         sta Driver::zp_blink_status
+        sta Driver::zp_flags
 
         rts
     .endproc
@@ -173,8 +171,9 @@
 
         ;; Set that we have done this operation so it's not done in future
         ;; cycles.
-        lda #1
-        sta Driver::zp_moved_out
+        lda Driver::zp_flags
+        ora #$80
+        sta Driver::zp_flags
 
         rts
     .endproc
@@ -222,10 +221,14 @@
         jsr Explosions::init
         jsr Items::init
 
-        ;; Initialize pause timer and some boolean values.
+        ;; Initialize pause timer.
         lda #0
         sta zp_pause_timer
-        sta Driver::zp_moved_out
+
+        ;; Clear out the 'S' flag.
+        lda Driver::zp_flags
+        and #$7F
+        sta Driver::zp_flags
 
         ;; Initialize variables for sprite cycling.
         sta zp_next_bullet_cycle
@@ -257,8 +260,9 @@
         sta zp_pause_timer
 
         ;; Toggle the message on the HUD.
-        lda #1
-        sta Driver::zp_pause_toggle
+        lda Driver::zp_flags
+        ora #$40
+        sta Driver::zp_flags
 
         ;; Pause vs unpause.
         lda #%00001000
@@ -310,8 +314,8 @@
         beq @sprite_cycling
 
         ;; Invalidate bullets and enemies if we haven't already.
-        lda Driver::zp_moved_out
-        bne @check_explosions
+        bit Driver::zp_flags
+        bmi @check_explosions
         jsr move_sprites_out
 
     @check_explosions:
@@ -625,6 +629,11 @@
     ;;
     ;; NOTE: only call this function from NMI code.
     .proc hud_toggle_pause
+        ;; Unset the 'P' flag.
+        lda Driver::zp_flags
+        and #%10111111
+        sta Driver::zp_flags
+
         lda #%00001000
         and Globals::zp_flags
         bne @paused

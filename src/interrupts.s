@@ -28,8 +28,8 @@
     sta OAM::m_dma
 
     ;; Toggle pause message from the HUD.
-    lda Driver::zp_pause_toggle
-    beq @increase_rand
+    bit Driver::zp_flags
+    bvc @increase_rand
     jsr Driver::hud_toggle_pause
 
 @increase_rand:
