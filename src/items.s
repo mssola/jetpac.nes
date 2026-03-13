@@ -37,15 +37,17 @@
 
     ;; TODO: stabilize and document.
     ;;
-    ;; Y tile | X tile | palette
+    ;; Y tile | X tile | palette/tile ID
     zp_current_tiles = $E7       ; asan:reserve POOL_CAPACITY_BYTES
 
     ;;
     ;; TODO: stabilize and document.
     ;;
-    ;; |G--- FFAA|
+    ;; |GNS- FFAA|
     ;; |
     ;; |- G: the player is grabbing an item
+    ;; |- N: a fuel tank is needed.
+    ;; |- S: there is a fuel tank on screen. (TODO: needed?)
     ;; |- F: number of falling items.
     ;; |- A: number of active items.
     zp_state = $CA
@@ -64,22 +66,28 @@
     ;; "collected".
     MID_SHUTTLE_Y = $A7
     HIGH_SHUTTLE_Y = $97
-    FUEL_SHUTTLE_Y = $C7
+    FUEL_SHUTTLE_Y = $B8
 
-    .proc init
+    ;; Constants for 'Items::zp_timer'.
+    ITEM_TIMER = HZ * 4
+    ITEM_TIMER_LO = ITEM_TIMER & $00FF
+    ITEM_TIMER_HI = (ITEM_TIMER & $FF00) >> 4
+
+    ;; Timer that determines when to drop a new item from the sky. It is
+    ;; initialized on screen entry or after time out.
+    ;;
+    ;; NOTE: 16-bit integer in little-endian format.
+    zp_timer = $CC              ; asan:reserve $02
+
+    ;; Initialize variables just before switching to the current level.
+    ;;
+    ;; NOTE: variables initialized here are supposed to live after
+    ;; deaths. Hence, they will only be re-initialized on either after a game
+    ;; over, or switching to a new level.
+    .proc init_level
         lda Globals::zp_level_kind
         bne @other_screens
-        JAL Items::init_first_screen
 
-    @other_screens:
-        ;; TODO
-
-        rts
-    .endproc
-
-    ;; TODO: this is only to be done for the first time we enter. Otherwise this
-    ;; will be reset every time.
-    .proc init_first_screen
         ;; We are going to allocate two shuttle parts, and hence two items.
         lda #2
         sta Items::zp_state
@@ -90,11 +98,51 @@
         lda #1
         sta Items::zp_collected
 
+        rts
+
+    @other_screens:
+        ;; Fuel tanks are needed, that's all.
+        lda #%01000000
+        sta Items::zp_state
+
+        ;; Shuttle parts are counted as "collected". This makes the
+        ;; implementation on other parts easier.
+        lda #3
+        sta Items::zp_collected
+
+        rts
+    .endproc
+
+    ;; Initialize which sprites are to appear when initializing the screen.
+    ;;
+    ;; NOTE: this should _only_ be called whenever we initialize the
+    ;; screen. This happens either when switching to it for the first time, but
+    ;; also after a death. That is, unlike Items::init_level() things here are
+    ;; reset for good.
+    .proc init
+        ;; Initialize the timer.
+        lda #ITEM_TIMER_LO
+        sta Items::zp_timer
+        lda #ITEM_TIMER_HI
+        sta Items::zp_timer + 1
+
         ;; State of the top part of the shuttle.
         ldx #0
         ldy #0
         sty Items::zp_pool_base, x
 
+        ;; Has the top shuttle part been collected yet? If not we will allocate
+        ;; the first slot for it.
+        lda Items::zp_collected
+        cmp #3
+        bcc @set_top_shuttle
+
+        ;; Invalidate the first slot, as it should not be allocated yet.
+        lda #$FF
+        sta Items::zp_pool_base, x
+        bne @mid_shuttle
+
+    @set_top_shuttle:
         ;; Screen and tile coordinates for the top part of the shuttle.
         lda #$4F
         sta Items::zp_pool_base + 1, x
@@ -109,9 +157,26 @@
         lsr
         sta Items::zp_current_tiles + 1, x
 
+        ;; Palettes.
+        lda #0
+        sta Items::zp_current_tiles + 2, x
+
+    @mid_shuttle:
+        ;; Has the mid shuttle part been collected yet? If not we will allocate
+        ;; the second slot for it.
+        lda Items::zp_collected
+        cmp #2
+        bcc @set_mid_shuttle
+
+        ;; Invalidate the second slot, as it should not be allocated yet.
+        lda #$FF
+        sta Items::zp_pool_base + 3, x
+        bne @invalidate_third
+
+    @set_mid_shuttle:
         ;; State of the middle part of the shuttle.
-        iny
-        sty Items::zp_pool_base + 3, x
+        lda #1
+        sta Items::zp_pool_base + 3, x
 
         ;; Screen and tile coordinates for the middle part of the shuttle.
         lda #$67
@@ -127,14 +192,14 @@
         lsr
         sta Items::zp_current_tiles + 4, x
 
-        ;; Invalidte the third item.
-        ldy #$FF
-        sty Items::zp_pool_base + 6, x
-
         ;; Palettes.
         lda #0
-        sta Items::zp_current_tiles + 2, x
         sta Items::zp_current_tiles + 6, x
+
+    @invalidate_third:
+        ;; Always invalidte the third item.
+        ldy #$FF
+        sty Items::zp_pool_base + 6, x
 
         rts
     .endproc
@@ -156,26 +221,70 @@
         ;; Should we allocate a part from the shuttle?
         bne @try_next_shuttle
         lda #$04
-        JAL allocate_shuttle_x_y
+        bne @no_attributes
     @try_next_shuttle:
         cmp #$01
-        bne @try_fuel
+        bne @do_fuel_or_regular
         lda #$06
-        JAL allocate_shuttle_x_y
+        bne @no_attributes
 
-    @try_fuel:
-        ;; TODO: validate whether we need to save/restore the 'x' register.
-        stx Globals::zp_tmp3
-        ;; TODO
-        ldx Globals::zp_tmp3
-        rts
+    @do_fuel_or_regular:
+        ;; Is it a fuel tank?
+        lda Items::zp_pool_base, x
+        and #$03
+        cmp #2
+        bne @regular
+        cmp #4
+        beq @coin
+
+        ;; Then just pick the tile from the fuel tank and pick the right
+        ;; palette.
+        lda #$0C
+        sta Globals::zp_arg0
+        lda #2
+        sta Globals::zp_arg1
+        JAL allocate_metasprite_x_y
+
+    @regular:
+        ;; This is a regular item
+        lda Items::zp_current_tiles + 2, x
+        lsr
+        lsr
+        lsr
+        lsr
+        sta Globals::zp_arg1
+        lda Items::zp_current_tiles + 2, x
+        and #$0F
+        stx Globals::zp_tmp0
+        tax
+        lda regular_items, x
+        ldx Globals::zp_tmp0
+        sta Globals::zp_arg0
+        JAL allocate_metasprite_x_y
+
+    @coin:
+        lda #$0A
+
+    @no_attributes:
+        sta Globals::zp_arg0
+        lda #0
+        sta Globals::zp_arg1
+        JAL allocate_metasprite_x_y
+
+    regular_items:
+        ;; Tile IDs for all collectible items. Note that some of them are
+        ;; repeated. This is in part to get to 8 items in total which makes the
+        ;; implementation easier, but it also give more chances to some items
+        ;; than some other more rare.
+        .byte $62, $62, $64, $64, $66, $68, $68, $6A
     .endproc
 
-    ;; Allocate a shuttle part on the same terms as
-    ;; Items::allocate_shuttle_x_y().
-    .proc allocate_shuttle_x_y
-        sta Globals::zp_tmp0
-
+    ;; Allocate a meta-sprite (made of 4 sprites) on the same terms as
+    ;; Items::allocate_x_y(). Moreover, it expects the following parameters:
+    ;;
+    ;;  - Globals::zp_arg0: the tile ID.
+    ;;  - Globals::zp_arg1: the attributes for each sprite.
+    .proc allocate_metasprite_x_y
         ;; Y coordinates
         lda Items::zp_pool_base + 1, x
         sta OAM::m_sprites, y                       ; top left
@@ -186,13 +295,13 @@
         sta OAM::m_sprites + 12, y                  ; bottom right
 
         ;; Tile IDs
-        lda Globals::zp_tmp0
+        lda Globals::zp_arg0
         sta OAM::m_sprites + 1, y                   ; top left
         clc
         adc #1
         sta OAM::m_sprites + 5, y                   ; top right
 
-        lda Globals::zp_tmp0
+        lda Globals::zp_arg0
         clc
         adc #$10
         sta OAM::m_sprites + 9, y                   ; bottom left
@@ -201,7 +310,7 @@
         sta OAM::m_sprites + 13, y                  ; bottom right
 
         ;; Attributes
-        lda #0
+        lda Globals::zp_arg1
         sta OAM::m_sprites + 2, y                   ; top left
         sta OAM::m_sprites + 6, y                   ; top right
         sta OAM::m_sprites + 10, y                  ; bottom left
@@ -228,6 +337,15 @@
     .proc update
         ldx #0
 
+        ;; In 'Globals::zp_arg3' we will store the index of a free item slot. If
+        ;; a free slot is found, at the end of this function the timer will be
+        ;; decremented and, if it times out, then a new item will be allocated
+        ;; at this stored index.
+        lda #$FF
+        sta Globals::zp_arg3
+
+        ;; The loop index is kept on memory so the 'y' register can be abused
+        ;; inside of it.
         ldy #POOL_CAPACITY
         sty Globals::zp_idx
 
@@ -251,20 +369,26 @@
         sta Globals::zp_arg1
 
     @loop:
-        ;; TODO: check how relevant this really is.
+        ;; This index will be valid throughout the iteration so different
+        ;; functions can rely on it.
         stx Items::zp_pool_index
 
         ;; Is it valid?
         lda Items::zp_pool_base, x
         cmp #$FF
         bne @check_status
+
+        ;; Save the index of this free slot.
+        stx Globals::zp_arg3
         jmp @next
 
     @check_status:
         ;; If it's resting, then just check for collision. Otherwise, we either
         ;; fall/drop or follow the player.
         and #$C0
-        beq @check_collision
+        bne @check_fall
+        jmp @check_collision
+    @check_fall:
         cmp #$40
         beq @do_fall
 
@@ -312,8 +436,13 @@
         ;; Fall/drop.
 
     @do_fall:
-        ;; Update the Y coordinate so the item is falling.
+        ;; Update the Y screen/tile coordinates so the item is falling.
         inc Items::zp_pool_base + 1, x
+        lda Items::zp_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles, x
 
         ;; Is the item being dropped? If not, then we just check for collision.
         lda Items::zp_pool_base, x
@@ -338,24 +467,42 @@
 
     @drop_check:
         ;; Does this item reach its dropping limit? If not just go to the next
-        ;; item.
-        ;; TODO: It should also work for "greater than".
+        ;; item. Note that this also works if it's below it, as the player can
+        ;; drop things from the ground too.
         cmp Items::zp_pool_base + 1, x
-        bne @next
+        bcc @is_dropped
+        jmp @next
 
+    @is_dropped:
         ;; Enable the 'ppu' and the 'shuttle' flags.
         lda Globals::zp_flags
         ora #%01100000
         sta Globals::zp_flags
 
-        ;; Decrease the number of falling/active items.
+        ;; Increase the number of collected items.
+        inc Items::zp_collected
+
+        ;; Now we unset the 'S' bit, which is unconditionally true regardless of
+        ;; the collection state. That being said, if we still need to collect
+        ;; more fuel tanks (the rocket has all its parts and we have not filled
+        ;; it with all tanks), then we set the 'N' bit. As a cherry on top, we
+        ;; take advantge of these operations to also decrease the number of
+        ;; falling/active items.
         lda Items::zp_state
+        ldy Items::zp_collected
+        cpy #3
+        bcc @set_new_state
+        cpy #9
+        beq @set_new_state
+        ora #$40
+    @set_new_state:
+        and #%11011111
         sec
         sbc #$05                ; NOTE: $04 (falling) + $01 (active)
         sta Items::zp_state
 
-        ;; Increase the number of collected items.
-        inc Items::zp_collected
+        ;; Save the index of this free slot.
+        stx Globals::zp_arg3
 
         ;; And invalidate this item.
         lda #$FF
@@ -369,12 +516,10 @@
     ;; Collision checks.
 
     @check_collision:
-        ;; Collision with the player.
+        ;; Check collision with the player. Otherwise let's check for background
+        ;; collision.
         jsr Items::collides_with_player
-        beq @next
-        ;; TODO: background collision (when the item is not grabbed): if it
-        ;; happens, then the P, F, D are set to 0. The number of falling items
-        ;; is also decreased.
+        beq @background
 
         ;; A collision happened! Get collected or follow the player (if possible).
         lda Items::zp_pool_base, x
@@ -417,18 +562,172 @@
         lda Items::zp_state
         ora #$80
         sta Items::zp_state
+        bne @next
 
+    @background:
+        ;; If it's not falling, then there's nothing to be done.
+        lda Items::zp_pool_base, x
+        and #$40
+        beq @next
+
+        ;; Check background collision with the bottom part of the item.
+        ldy Items::zp_current_tiles, x
+        iny
+        iny
+        sty Globals::zp_arg0
+        ldy Items::zp_current_tiles + 1, x
+        iny
+        sty Globals::zp_arg1
+        jsr Background::collides
+        beq @preserve_and_next
+
+        ;; It collides with the background! Cancel the previous downwards
+        ;; movement.
+        ldx Items::zp_pool_index
+        dec Items::zp_pool_base + 1, x
+        lda Items::zp_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles, x
+
+        ;; We have to unset the P, F, and D flags.
+        lda Items::zp_pool_base, x
+        and #$1F
+        sta Items::zp_pool_base, x
+
+        ;; And we need to decrease the number of falling items.
+        lda Items::zp_state
+        sec
+        sbc #$04
+        sta Items::zp_state
+
+    @preserve_and_next:
+        ldx Items::zp_pool_index
     @next:
         NEXT_ITEM_INDEX_X
         dec Globals::zp_idx
-        beq @end
+        beq @decrement_timer
         jmp @loop
+
+    @decrement_timer:
+        ;; Do we have a free item slot? If not then quit.
+        lda Globals::zp_arg3
+        cmp #$FF
+        beq @end
+        tax
+
+        ;; Yes! Decrement the counter.
+        lda Items::zp_timer
+        sec
+        sbc #1
+        sta Items::zp_timer
+        lda Items::zp_timer + 1
+        sbc #0
+        sta Items::zp_timer + 1
+
+        ;; If it times out, initialize a new item at this position.
+        lda Items::zp_timer
+        bne @end
+        lda Items::zp_timer + 1
+        bne @end
+        stx Items::zp_pool_index
+        JAL init_item_x
 
     @end:
         rts
     .endproc
 
-    ;; TODO: this assumes a 4-sprite item
+    ;; Initialize an ite from the pool as indexed by the 'x' register.
+    ;;
+    ;; NOTE: the 'x' register is modified, but the 'y' register is not touched.
+    .proc init_item_x
+        ;; Reset the timer.
+        lda #ITEM_TIMER_LO
+        sta Items::zp_timer
+        lda #ITEM_TIMER_HI
+        sta Items::zp_timer + 1
+
+        ;; We start by generating a new state. If the state is asking for a fuel
+        ;; tank, let it be. Otherwise it will be a regular item.
+        ;;
+        ;; TODO: coin support.
+        lda Items::zp_state
+        and #$40
+        beq @regular
+
+        ;; While we are on the topic of having a fuel tank, update the state for
+        ;; items by unsetting the N bit, and setting the S one.
+        lda Items::zp_state
+        and #%10111111
+        ora #$20
+        sta Items::zp_state
+
+        lda #$42
+        bne @set_state
+    @regular:
+        lda #$4B
+    @set_state:
+        sta Items::zp_pool_base, x
+
+        ;; As for the Y coordinate, the sky is the limit ;)
+        lda #Background::UPPER_MARGIN_Y_COORD
+        sta Items::zp_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles, x
+
+        ;; For the X coordinate we pick a random value, mask it so we only get
+        ;; four possible values, and we get the place from there.
+        jsr Prng::random_valid_y_coordinate
+        and #$03
+        tax
+        lda possible_x_positions, x
+        ldx Items::zp_pool_index
+        sta Items::zp_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles + 1, x
+
+        ;; Set the palette and a tile ID by assuming it's a regular item. Both
+        ;; of these values will be picked at random. Other items will simply
+        ;; ignore this byte, but for a regular item it's important. We could've
+        ;; done this conditionally, but adding an extra check while preserving
+        ;; some guaranteed registers and what not means more trouble than just
+        ;; doing things unconditionally.
+        jsr Prng::random_valid_y_coordinate
+        and #$03
+        asl
+        asl
+        asl
+        asl
+        sta Globals::zp_tmp0
+        jsr Prng::random_valid_y_coordinate
+        and #$07
+        ora Globals::zp_tmp0
+        ldx Items::zp_pool_index
+        sta Items::zp_current_tiles + 2, x
+
+        ;; Update the state to reflect a new active & falling item.
+        lda Items::zp_state
+        clc
+        adc #5                  ; NOTE: #4: falling; #1: active
+        sta Items::zp_state
+
+        rts
+
+    possible_x_positions:
+        ;; In this order: top left platform, between left-mid platform, mid
+        ;; platform, and the right platform.
+        .byte $29, $50, $7F, $D0
+    .endproc
+
+    ;; Check if the item pointed by the 'x' register is colliding with the
+    ;; player.
+    ;;
+    ;; NOTE: this assumes a 4-sprite meta-sprite, as all items are.
     .proc collides_with_player
         ldx Items::zp_pool_index
         lda Items::zp_current_tiles, x
@@ -463,9 +762,17 @@
         rts
     .endproc
 
-    ;; TODO: guarantee 'x' and 'y' safety
+    ;; Collect an item as indexed by 'zp_pool_index'. This function assumes that
+    ;; the item is already valid.
+    ;;
+    ;; NOTE: the 'y' register is preserved.
     .proc collect
-        ;; TODO
+        ldx Items::zp_pool_index
+        lda #$FF
+        sta Items::zp_pool_base, x
+
+        ;; TODO: score
+
         rts
     .endproc
 
@@ -473,7 +780,7 @@
     ;; belong to the background.
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
-    .proc prepare_scene
+    .proc prepare_background_scene
         ;; The low part of the rocket.
         bit PPU::m_status
         lda #$2A

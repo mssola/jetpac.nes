@@ -164,7 +164,7 @@
     palettes:
         ;; Background
         ;; 0: score
-        .byte $0F, $30, $30, $28
+        .byte $0F, $30, $24, $28
         ;; 1: floating platforms
         .byte $0F, $2C, $30, $2A
         ;; 2: ground
@@ -172,17 +172,15 @@
         ;; 3: ship
         .byte $0F, $16, $30, $00
 
-        ;; TODO: fuel tank needs color $24
-        ;; TODO: SUSE coin needs $0F, $16, $10, $18
         ;; Foreground
         ;; 0: player & ship
         .byte $0F, $30, $10, $30
         ;; 1: enemy 1 & bonuses
         .byte $0F, $2A, $2C, $16
         ;; 2: enemy 2, fuel & bonuses
-        .byte $0F, $16, $14, $28
+        .byte $0F, $16, $24, $28
         ;; 3: SUSE easter egg
-        .byte $0F, $16, $00, $2B
+        .byte $0F, $16, $10, $2B
     .endproc
 
     ;; Having 2KB for screen data is quite wasteful, but since it's such a

@@ -51,6 +51,7 @@ $C0-$C8: zp_pool_base
 $C9: zp_pool_index
 $CA: zp_state
 $CB: zp_collected
+$CC-$CD: zp_timer
 $D1: zp_tiles
 $D2-$D3: zp_movement_fn
 $D4: zp_pool_index
@@ -76,4 +77,4 @@ $4016: m_joypad
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 413/2048 (20.17%)
+- Internal RAM: 415/2048 (20.26%)

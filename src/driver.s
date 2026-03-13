@@ -125,7 +125,8 @@
         sta Player::zp_state
 
         ;; Prepare the items for the scene.
-        jsr Items::prepare_scene
+        jsr Items::prepare_background_scene
+        jsr Items::init_level
 
         ;; Mark the state of the game as "game". That is, the player has
         ;; started. Also set the `ppu` flag and unset the `title over` one.
