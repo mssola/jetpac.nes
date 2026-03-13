@@ -5,4 +5,7 @@
 
     ;; General purpose counter.
     zp_counter = $91            ; asan:ignore
+
+    ;; A value used for debugging purposes.
+    zp_value = $92              ; asan:ignore
 .endscope
