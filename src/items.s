@@ -523,7 +523,7 @@
 
         ;; A collision happened! Get collected or follow the player (if possible).
         lda Items::zp_pool_base, x
-        tay
+        sta Globals::zp_tmp0
         and #$08
         beq @try_to_follow_player
         jsr Items::collect
@@ -551,11 +551,22 @@
         bne @next
 
     @do_follow_player:
-        ;; TODO: If F was set, unset it and subtract the number of falling items.
-
         ;; Mark this item to be in 'following' mode.
-        tya
+        lda Globals::zp_tmp0
         ora #$80
+
+        ;; Moreover, if the 'falling' flag was set, unset it now, and decrease
+        ;; the number of falling items.
+        bit Globals::zp_tmp0
+        bvc @set_modes
+        and #%10111111
+        tay
+        lda Items::zp_state
+        sec
+        sbc #$04
+        sta Items::zp_state
+        tya
+    @set_modes:
         sta Items::zp_pool_base, x
 
         ;; Mark the player's to be already grabbing an item.
