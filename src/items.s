@@ -816,21 +816,91 @@
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
     .proc update_shuttle
-        lda Globals::zp_level_kind
-        bne @fuel
-
-        ;; Update the shuttle.
         lda Items::zp_collected
+        cmp #9
+        bne @high_middle
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$E5
+        sta PPU::m_address
+        lda #%10100000
+        sta PPU::m_data
+        jmp @end
+
+    @high_middle:
+        lda Items::zp_collected
+        cmp #8
+        bcc @half_high_middle
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$ED
+        sta PPU::m_address
+        lda #%10101010
+        sta PPU::m_data
+        bne @end
+
+    @half_high_middle:
+        lda Items::zp_collected
+        cmp #7
+        bcc @low_middle
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$ED
+        sta PPU::m_address
+        lda #%10100010
+        sta PPU::m_data
+        bne @end
+
+    @low_middle:
+        lda Items::zp_collected
+        cmp #6
+        bcc @half_low_middle
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$ED
+        sta PPU::m_address
+        lda #%10100000
+        sta PPU::m_data
+        bne @end
+
+    @half_low_middle:
+        lda Items::zp_collected
+        cmp #5
+        bcc @low
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$ED
+        sta PPU::m_address
+        lda #%00100000
+        sta PPU::m_data
+        bne @end
+
+    @low:
+        lda Items::zp_collected
+        cmp #4
+        bcc @just_top
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$F5
+        sta PPU::m_address
+        lda #%10101010
+        sta PPU::m_data
+
+    @just_top:
         cmp #3
-        bne @mid_shuttle
+        bcc @just_middle
         jsr draw_high_part_shuttle
-    @mid_shuttle:
+
+    @just_middle:
         jsr draw_middle_part_shuttle
-        rts
 
-    @fuel:
-        ;; TODO
-
+    @end:
         rts
     .endproc
 
