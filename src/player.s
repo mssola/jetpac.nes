@@ -834,14 +834,15 @@
 
     ;; That's just german for "the Bart, the".
     .proc die_bart_die
+        ;; If the player was grabbing an item when it happened, let go of it.
+        jsr Items::let_go_on_death
+
         ;; Decrement the life.
         lda Globals::zp_multiplayer
         and #$01
         tax
         dec Player::zp_lifes, x
         bne @nmi_update
-
-        ;; TODO: if it was grabbing an item, turn it into 'falling' state.
 
         ;; If this poor guy is over, then mark it in the multiplayer bitmap.
         cpx #0

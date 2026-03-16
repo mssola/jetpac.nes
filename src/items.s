@@ -10,6 +10,13 @@
 .endmacro
 
 .scope Items
+    ;;;
+    ;; Shadowed variables from the Player scope. This is mainly to be
+    ;; compatible with cl65.
+    zp_player_screen_y = $40    ; asan:ignore
+    zp_player_screen_x = $45    ; asan:ignore
+    PLAYER_WAIST  = $0C
+
     ;; Maximum amount of items allowed on screen at the same time.
     POOL_CAPACITY = 3
 
@@ -43,13 +50,12 @@
     ;;
     ;; TODO: stabilize and document.
     ;;
-    ;; |GNS- FFAA|
+    ;; |GNS- --FF|
     ;; |
     ;; |- G: the player is grabbing an item
     ;; |- N: a fuel tank is needed.
     ;; |- S: there is a fuel tank on screen. (TODO: needed?)
     ;; |- F: number of falling items.
-    ;; |- A: number of active items.
     zp_state = $CA
 
     ;; Number of shuttle parts (or fuel tanks) that have been collected so far.
@@ -85,11 +91,12 @@
     ;; deaths. Hence, they will only be re-initialized on either after a game
     ;; over, or switching to a new level.
     .proc init_level
+        ldx #0
+
         lda Globals::zp_level_kind
         bne @other_screens
 
-        ;; We are going to allocate two shuttle parts, and hence two items.
-        lda #2
+        lda #0
         sta Items::zp_state
 
         ;; We haven't collected anything yet, but it's convenient for us to mock
@@ -98,51 +105,10 @@
         lda #1
         sta Items::zp_collected
 
-        rts
-
-    @other_screens:
-        ;; Fuel tanks are needed, that's all.
-        lda #%01000000
-        sta Items::zp_state
-
-        ;; Shuttle parts are counted as "collected". This makes the
-        ;; implementation on other parts easier.
-        lda #3
-        sta Items::zp_collected
-
-        rts
-    .endproc
-
-    ;; Initialize which sprites are to appear when initializing the screen.
-    ;;
-    ;; NOTE: this should _only_ be called whenever we initialize the
-    ;; screen. This happens either when switching to it for the first time, but
-    ;; also after a death. That is, unlike Items::init_level() things here are
-    ;; reset for good.
-    .proc init
-        ;; Initialize the timer.
-        lda #ITEM_TIMER_LO
-        sta Items::zp_timer
-        lda #ITEM_TIMER_HI
-        sta Items::zp_timer + 1
-
-        ;; State of the top part of the shuttle.
-        ldx #0
-        ldy #0
-        sty Items::zp_pool_base, x
-
-        ;; Has the top shuttle part been collected yet? If not we will allocate
-        ;; the first slot for it.
-        lda Items::zp_collected
-        cmp #3
-        bcc @set_top_shuttle
-
-        ;; Invalidate the first slot, as it should not be allocated yet.
-        lda #$FF
+        ;; State for the top part of the shuttle.
+        lda #0
         sta Items::zp_pool_base, x
-        bne @mid_shuttle
 
-    @set_top_shuttle:
         ;; Screen and tile coordinates for the top part of the shuttle.
         lda #$4F
         sta Items::zp_pool_base + 1, x
@@ -161,19 +127,6 @@
         lda #0
         sta Items::zp_current_tiles + 2, x
 
-    @mid_shuttle:
-        ;; Has the mid shuttle part been collected yet? If not we will allocate
-        ;; the second slot for it.
-        lda Items::zp_collected
-        cmp #2
-        bcc @set_mid_shuttle
-
-        ;; Invalidate the second slot, as it should not be allocated yet.
-        lda #$FF
-        sta Items::zp_pool_base + 3, x
-        bne @invalidate_third
-
-    @set_mid_shuttle:
         ;; State of the middle part of the shuttle.
         lda #1
         sta Items::zp_pool_base + 3, x
@@ -196,10 +149,43 @@
         lda #0
         sta Items::zp_current_tiles + 6, x
 
+        beq @invalidate_third
+
+    @other_screens:
+        ;; Fuel tanks are needed, that's all.
+        lda #%01000000
+        sta Items::zp_state
+
+        ;; Shuttle parts are counted as "collected". This makes the
+        ;; implementation on other parts easier.
+        lda #3
+        sta Items::zp_collected
+
+        ;; Invalidate the first and the second slots.
+        lda #$FF
+        sta Items::zp_pool_base, x
+        sta Items::zp_pool_base + 3, x
+
     @invalidate_third:
-        ;; Always invalidte the third item.
-        ldy #$FF
-        sty Items::zp_pool_base + 6, x
+        ;; Always invalidate the third item.
+        lda #$FF
+        sta Items::zp_pool_base + 6, x
+
+        rts
+    .endproc
+
+    ;; Initialize a fresh screen.
+    ;;
+    ;; NOTE: this should _only_ be called whenever we initialize the
+    ;; screen. This happens either when switching to it for the first time, but
+    ;; also after a death. That is, unlike Items::init_level() things here are
+    ;; reset for good.
+    .proc init
+        ;; Initialize the timer.
+        lda #ITEM_TIMER_LO
+        sta Items::zp_timer
+        lda #ITEM_TIMER_HI
+        sta Items::zp_timer + 1
 
         rts
     .endproc
@@ -353,14 +339,14 @@
         ;; can be used for collision checking. Note that we are targetting for
         ;; the center of the player, which feels at a fair point for item
         ;; interactions.
-        lda Player::zp_screen_y
+        lda zp_player_screen_y
         clc
-        adc #Player::PLAYER_WAIST
+        adc #PLAYER_WAIST
         lsr
         lsr
         lsr
         sta Globals::zp_arg0
-        lda Player::zp_screen_x
+        lda zp_player_screen_x
         lsr
         lsr
         lsr
@@ -396,11 +382,11 @@
         ;; Follow the player.
 
         ;; Neither of the above. Then, just follow the player.
-        lda Player::zp_screen_y
+        lda zp_player_screen_y
         clc
         adc #8
         sta Items::zp_pool_base + 1, x
-        lda Player::zp_screen_x
+        lda zp_player_screen_x
         sta Items::zp_pool_base + 2, x
 
         ;; Are we at the zone where we must drop items?
@@ -421,9 +407,8 @@
         ;; Unset the 'grabbing' bit and increase the number of falling items.
         lda Items::zp_state
         and #$7F
-        clc
-        adc #$04
         sta Items::zp_state
+        inc Items::zp_state
 
         ;; And we force the item to be on the exact X screen position so to
         ;; adjust from the player's subpixel movement.
@@ -485,9 +470,7 @@
         ;; Now we unset the 'S' bit, which is unconditionally true regardless of
         ;; the collection state. That being said, if we still need to collect
         ;; more fuel tanks (the rocket has all its parts and we have not filled
-        ;; it with all tanks), then we set the 'N' bit. As a cherry on top, we
-        ;; take advantge of these operations to also decrease the number of
-        ;; falling/active items.
+        ;; it with all tanks), then we set the 'N' bit.
         lda Items::zp_state
         ldy Items::zp_collected
         cpy #3
@@ -497,9 +480,10 @@
         ora #$40
     @set_new_state:
         and #%11011111
-        sec
-        sbc #$05                ; NOTE: $04 (falling) + $01 (active)
         sta Items::zp_state
+
+        ;; Decrease the number of falling items.
+        dec Items::zp_state
 
         ;; Save the index of this free slot.
         stx Globals::zp_arg3
@@ -516,8 +500,11 @@
     ;; Collision checks.
 
     @check_collision:
-        ;; Check collision with the player. Otherwise let's check for background
-        ;; collision.
+        ;; Check collision with the player if it's alive. Otherwise let's check
+        ;; for background collision.
+        lda Globals::zp_flags
+        and #$10
+        bne @background
         jsr Items::collides_with_player
         beq @background
 
@@ -560,12 +547,7 @@
         bit Globals::zp_tmp0
         bvc @set_modes
         and #%10111111
-        tay
-        lda Items::zp_state
-        sec
-        sbc #$04
-        sta Items::zp_state
-        tya
+        dec Items::zp_state
     @set_modes:
         sta Items::zp_pool_base, x
 
@@ -608,10 +590,7 @@
         sta Items::zp_pool_base, x
 
         ;; And we need to decrease the number of falling items.
-        lda Items::zp_state
-        sec
-        sbc #$04
-        sta Items::zp_state
+        dec Items::zp_state
 
     @preserve_and_next:
         ldx Items::zp_pool_index
@@ -721,11 +700,8 @@
         ldx Items::zp_pool_index
         sta Items::zp_current_tiles + 2, x
 
-        ;; Update the state to reflect a new active & falling item.
-        lda Items::zp_state
-        clc
-        adc #5                  ; NOTE: #4: falling; #1: active
-        sta Items::zp_state
+        ;; Update the state to reflect a new falling item.
+        inc Items::zp_state
 
         rts
 
@@ -773,12 +749,59 @@
         rts
     .endproc
 
+    ;; Let go the item from the player if there is one being grabbed.
+    .proc let_go_on_death
+        ;; First of all, we need do check if the player was actually holding an
+        ;; item.
+        ldx #0
+        ldy #Items::POOL_CAPACITY
+
+    @loop:
+        lda Items::zp_pool_base, x
+        cmp #$FF
+        beq @next
+        and #$80
+        bne @found
+
+    @next:
+        NEXT_ITEM_INDEX_X
+        dey
+        bne @loop
+        rts
+
+    @found:
+        ;; The player was indeed grabbing an item. Then unset the P flag and set
+        ;; the F one.
+        lda Items::zp_pool_base, x
+        and #$7F
+        ora #$40
+        sta Items::zp_pool_base, x
+        ;; TODO: what if it died while on the ground
+
+        ;; Unset the 'grabbing' bit, and increase the number of falling items.
+        lda Items::zp_state
+        and #$7F
+        sta Items::zp_state
+        inc Items::zp_state
+
+        rts
+    .endproc
+
     ;; Collect an item as indexed by 'zp_pool_index'. This function assumes that
     ;; the item is already valid.
     ;;
     ;; NOTE: the 'y' register is preserved.
     .proc collect
         ldx Items::zp_pool_index
+
+        ;; If the collected item was actually falling down, decrease the number
+        ;; of falling items.
+        lda Items::zp_pool_base, x
+        and #$40
+        beq @invalidate
+        dec Items::zp_state
+
+    @invalidate:
         lda #$FF
         sta Items::zp_pool_base, x
 

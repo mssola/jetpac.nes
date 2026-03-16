@@ -161,15 +161,6 @@
         dey
         bne @bullets_reset_loop
 
-        ;; Invalidate all items.
-        ldx #0
-        ldy #Items::POOL_CAPACITY
-    @items_reset_loop:
-        sta Items::zp_pool_base, x
-        NEXT_ITEM_INDEX_X
-        dey
-        bne @items_reset_loop
-
         ;; Set that we have done this operation so it's not done in future
         ;; cycles.
         lda Driver::zp_flags
@@ -324,7 +315,12 @@
         lda Explosions::zp_active
         bne @sprite_cycling
 
-        ;; After all the explosions have been done, is any player alive?
+        ;; Are there still falling items?
+        lda Items::zp_state
+        and #$03
+        bne @sprite_cycling
+
+        ;; After all the explosions/items have been done, is any player alive?
         lda Globals::zp_multiplayer
         and #%00000110
         bne @reset_timer
@@ -334,6 +330,18 @@
         lda Globals::zp_flags
         ora #%00000010
         sta Globals::zp_flags
+
+        ;; Invalidate items, which were skipped on move_sprites_out() on purpose
+        ;; to keep them after each death. But since we are about to go to the
+        ;; title screen, now they are no longer useful.
+        lda #$FF
+        ldx #0
+        ldy #Items::POOL_CAPACITY
+    @items_reset_loop:
+        sta Items::zp_pool_base, x
+        NEXT_ITEM_INDEX_X
+        dey
+        bne @items_reset_loop
 
     @reset_timer:
         ;; Reset the player's timer to enter the game screen again.
