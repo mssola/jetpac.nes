@@ -61,12 +61,8 @@
     ;; Number of shuttle parts (or fuel tanks) that have been collected so far.
     zp_collected = $CB
 
-    ;; Coordinate where the dropping of items takes place. This comes in two
-    ;; versions, as the "collision" is done in the tile coordinates so to give
-    ;; some leeway to the player; but the dropping itself has to fall from the
-    ;; exact screen coordinates or otherwise the dropping would feel weird.z
+    ;; Coordinate where the dropping of items takes place.
     DROPPING_SCREEN_X = $A8
-    DROPPING_TILE_X = $15
 
     ;; Y screen coordinates in order for various parts to be considered as
     ;; "collected".
@@ -390,10 +386,12 @@
         sta Items::zp_pool_base + 2, x
 
         ;; Are we at the zone where we must drop items?
-        ldy Globals::zp_arg1
-        dey
-        cpy #DROPPING_TILE_X
-        beq @drop
+        cmp #DROPPING_SCREEN_X - 8
+        bcs @may_drop
+        jmp @next
+    @may_drop:
+        cmp #DROPPING_SCREEN_X + 8
+        bcc @drop
         jmp @next
 
     @drop:
