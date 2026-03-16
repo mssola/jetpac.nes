@@ -238,7 +238,24 @@
     @do_update_sprites:
         ;; And with that, update all the sprites with the information we have
         ;; collected (i.e. heading, thrust, coordinates).
-        JAL update_sprites
+        __fallthrough__ update_sprites
+    .endproc
+
+    .proc update_sprites
+        ;; It's just an update of coordinates or something more?
+        lda #%00000100
+        and zp_state
+        beq @update_coordinates
+
+        jsr update_player_tiles
+
+        ;; Clear out `update` flag.
+        lda zp_state
+        and #%11111011
+        sta zp_state
+
+    @update_coordinates:
+        JAL update_sprites_coordinates
     .endproc
 
     ;; Updates the `zp_velocity_y` and the `zp_position_y` depending on whether
@@ -701,23 +718,6 @@
 
     @end:
         rts
-    .endproc
-
-    .proc update_sprites
-        ;; It's just an update of coordinates or something more?
-        lda #%00000100
-        and zp_state
-        beq @update_coordinates
-
-        jsr update_player_tiles
-
-        ;; Clear out `update` flag.
-        lda zp_state
-        and #%11111011
-        sta zp_state
-
-    @update_coordinates:
-        JAL update_sprites_coordinates
     .endproc
 
     ;; Update the tiles used for the player's sprites. This includes which tile
