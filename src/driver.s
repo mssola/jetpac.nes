@@ -195,8 +195,6 @@
         lda #BLINKING_TIME
         sta Driver::zp_blink_timer
 
-        ;; TODO: items falling down.
-
     @no_update:
         rts
 

@@ -17,6 +17,13 @@
     zp_player_screen_x = $45    ; asan:ignore
     PLAYER_WAIST  = $0C
 
+    ;; The tile coordinates are also cached during the update()
+    ;; function. Reserve them into their own memory regions to avoid surprises
+    ;; by using the 'Globals::zp_arg0' and 'Globals::zp_arg1' variables which
+    ;; are also being used by the background check.
+    zp_player_tile_y = $43
+    zp_player_tile_x = $48
+
     ;; Maximum amount of items allowed on screen at the same time.
     POOL_CAPACITY = 3
 
@@ -341,14 +348,14 @@
         lsr
         lsr
         lsr
-        sta Globals::zp_arg0
+        sta Items::zp_player_tile_y
         lda zp_player_screen_x
         lsr
         lsr
         lsr
         clc
         adc #1
-        sta Globals::zp_arg1
+        sta Items::zp_player_tile_x
 
     @loop:
         ;; This index will be valid throughout the iteration so different
@@ -735,22 +742,22 @@
 
         ;; Check for the Y tile coordinate. If it's not the same on either the
         ;; upper or the bottom parts of the item, then it's a no.
-        cmp Globals::zp_arg0
+        cmp Items::zp_player_tile_y
         beq @check_x
         clc
         adc #1
-        cmp Globals::zp_arg0
+        cmp Items::zp_player_tile_y
         bne @no
 
     @check_x:
         ;; If the Y tile coordinate checks out, let's narrow it down to the X
         ;; coordinate.
         lda Items::zp_current_tiles + 1, x
-        cmp Globals::zp_arg1
+        cmp Items::zp_player_tile_x
         beq @yes
         clc
         adc #1
-        cmp Globals::zp_arg1
+        cmp Items::zp_player_tile_x
         bne @no
 
     @yes:
