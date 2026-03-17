@@ -382,8 +382,18 @@
         clc
         adc #8
         sta Items::zp_pool_base + 1, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles, x
         lda zp_player_screen_x
+        tay
         sta Items::zp_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles + 1, x
+        tya
 
         ;; Are we at the zone where we must drop items?
         cmp #DROPPING_SCREEN_X - 8
@@ -412,6 +422,10 @@
         ;; adjust from the player's subpixel movement.
         lda #DROPPING_SCREEN_X
         sta Items::zp_pool_base + 2, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles + 1, x
 
         jmp @next
 
@@ -626,7 +640,7 @@
         rts
     .endproc
 
-    ;; Initialize an ite from the pool as indexed by the 'x' register.
+    ;; Initialize an item from the pool as indexed by the 'x' register.
     ;;
     ;; NOTE: the 'x' register is modified, but the 'y' register is not touched.
     .proc init_item_x
@@ -774,7 +788,6 @@
         and #$7F
         ora #$40
         sta Items::zp_pool_base, x
-        ;; TODO: what if it died while on the ground
 
         ;; Unset the 'grabbing' bit, and increase the number of falling items.
         lda Items::zp_state
