@@ -99,7 +99,7 @@
     ;; Constants for 'Items::zp_timer'.
     ITEM_TIMER = HZ * 4
     ITEM_TIMER_LO = ITEM_TIMER & $00FF
-    ITEM_TIMER_HI = (ITEM_TIMER & $FF00) >> 4
+    ITEM_TIMER_HI = (ITEM_TIMER & $FF00) >> 8
 
     ;; Timer that determines when to drop a new item from the sky. It is
     ;; initialized on screen entry or after time out.
