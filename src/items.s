@@ -17,7 +17,7 @@
     zp_player_screen_x = $45    ; asan:ignore
     PLAYER_WAIST  = $0C
 
-    ;; The tile coordinates are also cached during the update()
+    ;; The player's tile coordinates are also cached during the update()
     ;; function. Reserve them into their own memory regions to avoid surprises
     ;; by using the 'Globals::zp_arg0' and 'Globals::zp_arg1' variables which
     ;; are also being used by the background check.
@@ -33,6 +33,10 @@
     ;; The capacity of the items pool in bytes.
     POOL_CAPACITY_BYTES = POOL_CAPACITY * SIZEOF_POOL_ITEM
 
+    ;; Base address for the pool of items used on this game. The pool has
+    ;; '#Items::POOL_CAPACITY' capacity of item objects where each one is
+    ;; 'Items::SIZEOF_POOL_ITEM' bytes long:
+    ;;
     ;; 1. State: $FF for invalid, otherwise:
     ;;   |PFD- CKKK|; where:
     ;;   |
@@ -49,23 +53,38 @@
     ;; Preserves the index on 'zp_pool_base' in Items::update().
     zp_pool_index = $C9
 
-    ;; TODO: stabilize and document.
+    ;; Buffer which caches extra data for each item which is useful for
+    ;; collision checks, or rendering the item itself. It follows the same
+    ;; format as 'Items::zp_pool_base', with the same order. Thus, with the same
+    ;; 'Items::zp_pool_index', you can index the same enemy on both buffers. For
+    ;; each buffer we have the following:
     ;;
-    ;; Y tile | X tile | palette/tile ID
+    ;; | tile Y | tile X | palette / tile ID |
+    ;; |
+    ;; |- tile Y/X: tile coordinates for the item.
+    ;; |- palette: palette identifier to be used for the item.
+    ;; |- tile ID: the tile ID to be used for the item as its top-left sprite.
+    ;;
+    ;; NOTE: palette and tile ID live on the same byte. 'palette' is on the high
+    ;; nibble, and tile ID on the low nibble.
     zp_current_tiles = $E7       ; asan:reserve POOL_CAPACITY_BYTES
 
-    ;;
-    ;; TODO: stabilize and document.
+    ;; Bitmap which holds different boolean values for the state of items in
+    ;; general.
     ;;
     ;; |GNS- --FF|
     ;; |
-    ;; |- G: the player is grabbing an item
-    ;; |- N: a fuel tank is needed.
-    ;; |- S: there is a fuel tank on screen. (TODO: needed?)
-    ;; |- F: number of falling items.
+    ;; |- G: the player is Grabbing an item
+    ;; |- N: a fuel tank is Needed.
+    ;; |- S: there is a fuel tank on Screen.
+    ;; |- F: number of Falling items.
     zp_state = $CA
 
-    ;; Number of shuttle parts (or fuel tanks) that have been collected so far.
+    ;; Number of shuttle parts (or fuel tanks) that have been collected so
+    ;; far. Note that parts which are now part of the background are also
+    ;; computed on this variable. Hence, even the low part of the shuttle which
+    ;; is always in the background is computed as a collected item. This makes
+    ;; things simpler to deal with.
     zp_collected = $CB
 
     ;; Coordinate where the dropping of items takes place.
