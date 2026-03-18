@@ -111,6 +111,12 @@
     ;; NOTE: 16-bit integer in little-endian format.
     zp_timer = $CC              ; asan:reserve $02
 
+    ;; Fuel tanks go into a different timer, which should be way snappier than
+    ;; the default 'Items::zp_timer'. This is because in the original whenever a
+    ;; fuel tank was needed, it felt down almost right away.
+    FUEL_TIMER = HZ
+    zp_fuel_timer = $CE
+
     ;; Initialize variables just before switching to the current level.
     ;;
     ;; NOTE: variables initialized here are supposed to live after
@@ -212,6 +218,10 @@
         sta Items::zp_timer
         lda #ITEM_TIMER_HI
         sta Items::zp_timer + 1
+
+        ;; Initialize the fuel timer.
+        lda #Items::FUEL_TIMER
+        sta Items::zp_fuel_timer
 
         rts
     .endproc
@@ -512,13 +522,16 @@
         ;; Now we unset the 'S' bit, which is unconditionally true regardless of
         ;; the collection state. That being said, if we still need to collect
         ;; more fuel tanks (the rocket has all its parts and we have not filled
-        ;; it with all tanks), then we set the 'N' bit.
+        ;; it with all tanks), then we set the 'N' bit (and we reset the fuel
+        ;; timer).
         lda Items::zp_state
         ldy Items::zp_collected
         cpy #3
         bcc @set_new_state
         cpy #9
         beq @set_new_state
+        ldy #Items::FUEL_TIMER
+        sty Items::zp_fuel_timer
         ora #$40
     @set_new_state:
         and #%11011111
@@ -658,11 +671,23 @@
         sbc #0
         sta Items::zp_timer + 1
 
+        ;; If the 'N' bit is set, then we only care about the snappier
+        ;; 'Items::zp_fuel_timer' value. If that timer has run out, ignore the
+        ;; default one and jump right into initializing a new item (which will
+        ;; be a fuel tank, as guaranteed by init_item_x()).
+        lda Items::zp_state
+        and #$40
+        beq @check_timer
+        dec Items::zp_fuel_timer
+        beq @new_item_x
+
+    @check_timer:
         ;; If it times out, initialize a new item at this position.
         lda Items::zp_timer
         bne @end
         lda Items::zp_timer + 1
         bne @end
+    @new_item_x:
         stx Items::zp_pool_index
         JAL init_item_x
 
@@ -670,7 +695,9 @@
         rts
     .endproc
 
-    ;; Initialize an item from the pool as indexed by the 'x' register.
+    ;; Initialize an item from the pool as indexed by the 'x' register. The item
+    ;; will be randomized unless the 'N' bit is set from 'Items::zp_state', in
+    ;; which case a fuel tank will just be delivered.
     ;;
     ;; NOTE: the 'x' register is modified, but the 'y' register is not touched.
     .proc init_item_x
