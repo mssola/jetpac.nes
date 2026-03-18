@@ -399,7 +399,7 @@
 
     @after_first_bullet:
         ;; Save the index that was considered for the first bullet.
-        stx zp_first_bullet     ; TODO: why not after the first ldx?
+        stx zp_first_bullet
 
         ;; Increase the index for the bullets cycling. If wrapping is detected,
         ;; then it resets this value back to zero.
