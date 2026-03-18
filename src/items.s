@@ -97,7 +97,11 @@
     FUEL_SHUTTLE_Y = $B8
 
     ;; Constants for 'Items::zp_timer'.
-    ITEM_TIMER = HZ * 4
+    .ifdef PARTIAL
+        ITEM_TIMER = HZ * 4
+    .else
+        ITEM_TIMER = HZ * 25
+    .endif
     ITEM_TIMER_LO = ITEM_TIMER & $00FF
     ITEM_TIMER_HI = (ITEM_TIMER & $FF00) >> 8
 
