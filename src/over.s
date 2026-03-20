@@ -243,15 +243,16 @@
         .byte $29, $30, $1F, $2C, $FF
     .endproc
 
-    ;; Render the "Game over" in the case the player has collected SUSE's coin.
-    ;; TODO: see how much it can be merged
-    ;; TODO: not centered nor fully realized.
+    ;; Render the "Game over" in the case the player has collected SUSE's
+    ;; coin. There's clearly a way to merge this function with
+    ;; Over::render_regular_game_over(), but we have so much ROM space left that
+    ;; I don't even care.
     .proc render_coin_game_over
         ;; Set the position.
         bit PPU::m_status
         ldx #$29
         stx PPU::m_address
-        ldx #$6C
+        ldx #$64
         stx PPU::m_address
 
         ;; And just iterate over the "message" until we reach the end of string
@@ -288,7 +289,7 @@
         .byte $1B, $00
         ;; "SUPER "
         .byte $2D, $2F, $2A, $1F, $2C, $00
-        ;; "PLAYER!" TODO
-        .byte $2A, $26, $1B, $33, $1F, $2C, $FF
+        ;; "PLAYER!"
+        .byte $2A, $26, $1B, $33, $1F, $2C, $80, $FF
     .endproc
 .endscope
