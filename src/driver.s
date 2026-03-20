@@ -321,7 +321,7 @@
         ;; After all the explosions/items have been done, is any player alive?
         lda Globals::zp_multiplayer
         and #%00000110
-        bne @reset_timer
+        bne @reset_timers
 
         ;; No! Set the game over bit (with or without coin).
         lda Globals::zp_flags
@@ -347,10 +347,16 @@
         dey
         bne @items_reset_loop
 
-    @reset_timer:
+    @reset_timers:
         ;; Reset the player's timer to enter the game screen again.
         lda #PLAYER_TIMER_VALUE
         sta zp_player_timer
+
+        ;; Restart the blinking animation.
+        lda #BLINKING_TIME
+        sta Driver::zp_blink_timer
+        lda #$80
+        sta Driver::zp_blink_status
 
     @sprite_cycling:
         __fallthrough__ sprite_cycling
