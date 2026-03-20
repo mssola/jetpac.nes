@@ -230,7 +230,7 @@
     ;; which effectively means to just sit and wait until for the right player
     ;; input.
     jsr Over::handle
-    sta Globals::zp_tmp0
+    pha
 
     ;; Wait for the PPU to render the screen.
 @set_flags_over:
@@ -242,7 +242,7 @@
     bmi @wait_for_render_over
 
     ;; Can the player start over?
-    lda Globals::zp_tmp0
+    pla
     beq @main_game_loop
 
     ;; We will skip the initialization of the assets so to avoid writing into
