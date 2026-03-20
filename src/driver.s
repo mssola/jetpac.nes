@@ -329,8 +329,10 @@
         sta Globals::zp_flags
         lda Items::zp_state
         and #$04
-        beq @invalidate_items
-        inc Globals::zp_flags
+        bne @invalidate_items
+        lda Globals::zp_flags
+        and #$FE
+        sta Globals::zp_flags
 
     @invalidate_items:
         ;; Invalidate items, which were skipped on move_sprites_out() on purpose
