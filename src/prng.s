@@ -9,6 +9,14 @@
     ;; Current random value. Initialized on the title to game transition.
     zp_rand = $0A
 
+    ;; Last random value as stored by
+    ;; Prng::random_non_repeated_valid_y_coordinate().
+    zp_last_rand = $12
+
+    ;; How many attempts should Prng::random_non_repeated_valid_y_coordinate()
+    ;; take to find a unique value.
+    RAND_ATTEMPTS = 3
+
     ;; Updates the 'a' register with the next random number set after the
     ;; current value of `zp_rand`, while also making sure that it is a valid
     ;; screen Y coordinate.
@@ -19,6 +27,33 @@
         ldx zp_rand
         lda valid_y_rand_table, x
         sta zp_rand
+        rts
+    .endproc
+
+    ;; Calls Prng::random_valid_y_coordinate() multiple times until we get a
+    ;; different value than what we got the last time we called this
+    ;; function. Realistically this should just take 1 attempt for most cases,
+    ;; and in the worst case just 2. Nevertheless, we have set a generous value
+    ;; to 'RAND_ATTEMPTS' just in case.
+    ;;
+    ;; NOTE: the 'y' register is preserved.
+    .proc random_non_repeated_valid_y_coordinate
+        tya
+        pha
+        ldy #RAND_ATTEMPTS
+
+    @again:
+        jsr Prng::random_valid_y_coordinate
+        cmp Prng::zp_last_rand
+        bne @end
+        dey
+        bne @again
+
+    @end:
+        sta Prng::zp_last_rand
+        pla
+        tay
+        lda Prng::zp_last_rand
         rts
     .endproc
 .endscope

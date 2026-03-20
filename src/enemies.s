@@ -244,7 +244,7 @@
 
         ;; The Y coordinate is also set at random within the bounds of the
         ;; playable screen.
-        jsr Prng::random_valid_y_coordinate
+        jsr Prng::random_non_repeated_valid_y_coordinate
         ldx Globals::zp_tmp0
         inx
         sta Enemies::zp_pool_base, x

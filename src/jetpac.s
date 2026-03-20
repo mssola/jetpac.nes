@@ -130,6 +130,7 @@
     sta Joypad::zp_prev
     sta Player::zp_state
     sta Items::zp_state
+    sta Prng::zp_last_rand
 
     ;; Initialize the level. We allow the build system to pass its own value for
     ;; this in `LEVEL`, just in case we want to debug the enemy of a specific

@@ -16,6 +16,7 @@ $0E: zp_player_tile_waist
 $0F: zp_player_tile_bottom
 $10: zp_displayed
 $11: zp_timer
+$12: zp_last_rand
 $20: zp_flags
 $21: zp_prev
 $22: zp_buttons
@@ -80,4 +81,4 @@ $4016: m_joypad
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 418/2048 (20.41%)
+- Internal RAM: 419/2048 (20.46%)
