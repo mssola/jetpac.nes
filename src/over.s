@@ -27,7 +27,8 @@
     ;; It will set 1 to the 'a' register if the timer has run out, signaling
     ;; that the game can start over. Otherwise it sets 0 to the 'a' register.
     .proc handle
-        ldy #0
+        lda #0
+        sta Globals::zp_arg3
 
         ;; Has the "Game over" screen been displayed? If not do it now.
         lda Over::zp_displayed
@@ -38,13 +39,13 @@
     @do_handle:
         lda Over::zp_timer
         bne @dec_timer
-        iny
+        inc Globals::zp_arg3
         beq @end
     @dec_timer:
         dec Over::zp_timer
 
     @end:
-        tya
+        lda Globals::zp_arg3
         rts
     .endproc
 
