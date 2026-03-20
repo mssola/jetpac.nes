@@ -24,7 +24,7 @@ adapted to the reality of the NES/Famicom. This means:
   hard to do and probably not worth it. In the end: different machine, different
   rules. Hence, bullets are handled in a similar way as other games for the
   NES/Famicom, even if it's not particularly close to the original.
-- As an homage to Donkey Kong 64, you can **collect a coin** after completing 16
+- As an homage to Donkey Kong 64, you can **collect a coin** after completing 8
   stages. This coin features a chameleon as a reference to SUSE, since I
   originally bootstrapped this project during [Hackweek
   23](https://hackweek.opensuse.org/projects/port-the-jetpac-game-to-the-nes).

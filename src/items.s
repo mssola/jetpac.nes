@@ -44,7 +44,7 @@
     ;;   |- F: falling.
     ;;   |- D: dropping: together with 'falling', but the player cannot re-grab it.
     ;;   |- C: 1: collectable (i.e. disappears on collision); 0: part (i.e. follows the player)
-    ;;   |- K: object kind (00: high shuttle; 01: mid shuttle; 10: fuel; 11: regular item; 100: coin)
+    ;;   |- K: object kind (000: high shuttle; 001: mid shuttle; 010: fuel; 011: regular item; 100: coin)
     ;;
     ;; 2. Y coordinate.
     ;; 3. X coordinate.
@@ -72,11 +72,12 @@
     ;; Bitmap which holds different boolean values for the state of items in
     ;; general.
     ;;
-    ;; |GNS- --FF|
+    ;; |GNS- -CFF|
     ;; |
     ;; |- G: the player is Grabbing an item
     ;; |- N: a fuel tank is Needed.
     ;; |- S: there is a fuel tank on Screen.
+    ;; |- C: SUSE's Coin has been collected.
     ;; |- F: number of Falling items.
     zp_state = $CA
 
@@ -128,7 +129,9 @@
         lda Globals::zp_level_kind
         bne @other_screens
 
-        lda #0
+        ;; Zero out the state except for the 'C' bit.
+        lda Items::zp_state
+        and #$04
         sta Items::zp_state
 
         ;; We haven't collected anything yet, but it's convenient for us to mock
@@ -179,13 +182,16 @@
 
         ;; Palettes.
         lda #0
-        sta Items::zp_current_tiles + 6, x
+        sta Items::zp_current_tiles + 5, x
 
-        beq @invalidate_third
+        beq @coin_or_invalidate_third
 
     @other_screens:
-        ;; Fuel tanks are needed, that's all.
-        lda #%01000000
+        ;; Zero out the state except for the 'C' bit. The 'N' bit needs to be
+        ;; set always.
+        lda Items::zp_state
+        and #$04
+        ora #$40
         sta Items::zp_state
 
         ;; Shuttle parts are counted as "collected". This makes the
@@ -197,6 +203,46 @@
         lda #$FF
         sta Items::zp_pool_base, x
         sta Items::zp_pool_base + 3, x
+        bne @invalidate_third
+
+    @coin_or_invalidate_third:
+        ;; If we have finished the game once, and we have not collected the
+        ;; SUSE's coin yet, let it be.
+        lda Globals::zp_level
+        cmp #8
+        bne @invalidate_third
+        lda Items::zp_state
+        and #$04
+        bne @invalidate_third
+
+        ;; SUSE's coin will fall from the sky. Hence, compute this new item as a
+        ;; falling one.
+        inc Items::zp_state
+
+        ;; SUSE's coin can be Collected, is identified by the '100' kind, and is
+        ;; in a Falling state.
+        lda #%01001100
+        sta Items::zp_pool_base + 6, x
+
+        ;; Falling from the sky at the right platform.
+        lda #Background::UPPER_MARGIN_Y_COORD
+        sta Items::zp_pool_base + 7, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles + 6, x
+        lda #$D0
+        sta Items::zp_pool_base + 8, x
+        lsr
+        lsr
+        lsr
+        sta Items::zp_current_tiles + 7, x
+
+        ;; Default palette, the tile ID is simply ignored.
+        lda #0
+        sta Items::zp_current_tiles + 8, x
+
+        rts
 
     @invalidate_third:
         ;; Always invalidate the third item.
@@ -248,26 +294,23 @@
         cmp #$01
         bne @do_fuel_or_regular
         lda #$06
-        bne @no_attributes
+        beq @do_fuel_or_regular
 
-    @do_fuel_or_regular:
-        ;; Is it a fuel tank?
-        lda Items::zp_pool_base, x
-        and #$03
-        cmp #2
-        bne @regular
-        cmp #4
-        beq @coin
-
-        ;; Then just pick the tile from the fuel tank and pick the right
-        ;; palette.
-        lda #$0C
+    @no_attributes:
         sta Globals::zp_arg0
-        lda #2
+        lda #0
         sta Globals::zp_arg1
         JAL allocate_metasprite_x_y
 
-    @regular:
+    @do_fuel_or_regular:
+        ;; Switch statement for the kind of item (regular, fuel, coin).
+        lda Items::zp_pool_base, x
+        and #$07
+        cmp #2
+        beq @fuel
+        cmp #4
+        beq @coin
+
         ;; This is a regular item
         lda Items::zp_current_tiles + 2, x
         lsr
@@ -284,12 +327,19 @@
         sta Globals::zp_arg0
         JAL allocate_metasprite_x_y
 
+    @fuel:
+        ;; Then just pick the tile from the fuel tank and pick the right
+        ;; palette.
+        lda #$0C
+        sta Globals::zp_arg0
+        lda #2
+        sta Globals::zp_arg1
+        JAL allocate_metasprite_x_y
+
     @coin:
         lda #$0A
-
-    @no_attributes:
         sta Globals::zp_arg0
-        lda #0
+        lda #3
         sta Globals::zp_arg1
         JAL allocate_metasprite_x_y
 
@@ -709,8 +759,6 @@
 
         ;; We start by generating a new state. If the state is asking for a fuel
         ;; tank, let it be. Otherwise it will be a regular item.
-        ;;
-        ;; TODO: coin support.
         lda Items::zp_state
         and #$40
         beq @regular
@@ -862,6 +910,18 @@
     .proc collect
         ldx Items::zp_pool_index
 
+        ;; Are we collecting the one and only SUSE coin?!
+        lda Items::zp_pool_base, x
+        and #$07
+        cmp #4
+        bne @check_fall
+
+        ;; Hell, yeah!
+        lda Items::zp_state
+        ora #$04
+        sta Items::zp_state
+
+    @check_fall:
         ;; If the collected item was actually falling down, decrease the number
         ;; of falling items.
         lda Items::zp_pool_base, x

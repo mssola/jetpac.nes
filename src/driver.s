@@ -323,12 +323,16 @@
         and #%00000110
         bne @reset_timer
 
-        ;; No! Toggle the game over bit.
-        ;; TODO: missing the coin game over.
+        ;; No! Set the game over bit (with or without coin).
         lda Globals::zp_flags
         ora #%00000010
         sta Globals::zp_flags
+        lda Items::zp_state
+        and #$04
+        beq @invalidate_items
+        inc Globals::zp_flags
 
+    @invalidate_items:
         ;; Invalidate items, which were skipped on move_sprites_out() on purpose
         ;; to keep them after each death. But since we are about to go to the
         ;; title screen, now they are no longer useful.

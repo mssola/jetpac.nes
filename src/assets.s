@@ -180,7 +180,7 @@
         ;; 2: enemy 2, fuel & bonuses
         .byte $0F, $16, $24, $28
         ;; 3: SUSE easter egg
-        .byte $0F, $16, $10, $2B
+        .byte $0F, $16, $1B, $2B
     .endproc
 
     ;; Having 2KB for screen data is quite wasteful, but since it's such a

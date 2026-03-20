@@ -1,8 +1,3 @@
-;; Sanity check for the 'LEVEL' build parameter.
-.if !(LEVEL >= 0 && LEVEL < 8)
-    .error "You have defined a bad 'LEVEL' value, it should be between 0 and 7 (both included)"
-.endif
-
 ;; Jump And Link: jump to subroutine but use the return address that the caller
 ;; had whenever the given subroutine runs `rts`. In other words, "link" the
 ;; return address from the caller to the callee.

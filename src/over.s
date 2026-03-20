@@ -67,9 +67,16 @@
 
     @do_render:
         jsr Over::clear_out_screen
-        ;; TODO: coin game over.
+        lda Globals::zp_flags
+        and #$03
+        cmp #2
+        beq @regular
+        jsr Over::render_coin_game_over
+        jmp @next
+    @regular:
         jsr Over::render_regular_game_over
 
+    @next:
         ;; Enable back the PPU (only background).
         lda #%00001110
         sta PPU::zp_mask
@@ -233,5 +240,54 @@
         .byte $21, $1B, $27, $1F, $00
         ;; "OVER"
         .byte $29, $30, $1F, $2C, $FF
+    .endproc
+
+    ;; Render the "Game over" in the case the player has collected SUSE's coin.
+    ;; TODO: see how much it can be merged
+    ;; TODO: not centered nor fully realized.
+    .proc render_coin_game_over
+        ;; Set the position.
+        bit PPU::m_status
+        ldx #$29
+        stx PPU::m_address
+        ldx #$6C
+        stx PPU::m_address
+
+        ;; And just iterate over the "message" until we reach the end of string
+        ;; $FF character.
+        ldx #0
+    @message_loop:
+        lda message, x
+        cmp #$FF
+        beq @out
+        sta PPU::m_data
+        inx
+        bne @message_loop
+
+    @out:
+        ;; Reset attributes for the end of the message.
+        bit PPU::m_status
+        ldx #$2B
+        stx PPU::m_address
+        ldx #$D5
+        stx PPU::m_address
+        lda #0
+        sta PPU::m_data
+        sta PPU::m_data
+        sta PPU::m_data
+
+        rts
+
+    message:
+        ;; "YOU "
+        .byte $33, $29, $2F, $00
+        ;; "ARE "
+        .byte $1B, $2C, $1F, $00
+        ;; "A "
+        .byte $1B, $00
+        ;; "SUPER "
+        .byte $2D, $2F, $2A, $1F, $2C, $00
+        ;; "PLAYER!" TODO
+        .byte $2A, $26, $1B, $33, $1F, $2C, $FF
     .endproc
 .endscope
