@@ -30,7 +30,7 @@
     ;; Toggle pause message from the HUD.
     bit Driver::zp_flags
     bvc @increase_rand
-    jsr Driver::hud_toggle_pause
+    jsr Driver::nmi_hud_toggle_pause
 
 @increase_rand:
     ;; Increase the random seed.
@@ -56,7 +56,7 @@
     lda #$70
 @set_blinking:
     sta Globals::zp_nmi_reserved
-    jsr Driver::blink_player_selection
+    jsr Driver::nmi_blink_player_selection
 
 @update_lifes:
     ;; Do we need to update the lifes from players on the HUD?
@@ -109,7 +109,7 @@
     ;; the usual route.
     lda Items::zp_collected
     bne @do_update_shuttle
-    jsr Background::clear_shuttle
+    jsr Background::nmi_clear_shuttle
     jmp @unset_shuttle_flag
 @do_update_shuttle:
     jsr Items::update_shuttle

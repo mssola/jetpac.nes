@@ -908,9 +908,7 @@
     .endproc
 
     ;; Toggle the "Paused" message from the (not quite) HUD.
-    ;;
-    ;; NOTE: only call this function from NMI code.
-    .proc hud_toggle_pause
+    .proc nmi_hud_toggle_pause
         ;; Unset the 'P' flag.
         lda Driver::zp_flags
         and #%10111111
@@ -964,9 +962,7 @@
     ;; This function expects the 'Globals::zp_nmi_reserved' to be set with the
     ;; addition to be performed on each base character in order to set the
     ;; proper animation phase (i.e. either "#$00" or "#$70").
-    ;;
-    ;; NOTE: only call this function from NMI code.
-    .proc blink_player_selection
+    .proc nmi_blink_player_selection
         bit PPU::m_status
 
         ;; Which player are we talking about?

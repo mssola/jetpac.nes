@@ -109,9 +109,7 @@
         .byte $FF
 
     ;; Clear out the shuttle from the background.
-    ;;
-    ;; NOTE: this should only be called from NMI code.
-    .proc clear_shuttle
+    .proc nmi_clear_shuttle
         ;; The low part of the rocket.
         bit PPU::m_status
         ldx #$2B

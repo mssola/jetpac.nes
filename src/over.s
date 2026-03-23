@@ -67,7 +67,7 @@
         rts
 
     @do_render:
-        jsr Over::clear_out_screen
+        jsr Over::nmi_clear_out_screen
         lda Globals::zp_flags
         and #$03
         cmp #2
@@ -97,7 +97,7 @@
     .endproc
 
     ;; Remove all platforms and the ground.
-    .proc clear_out_screen
+    .proc nmi_clear_out_screen
         ;; Remove left platform.
         bit PPU::m_status
         ldx #$29
@@ -153,7 +153,7 @@
         bne @clear_ground_loop
 
         ;; Clear the shuttle from the background.
-        jsr Background::clear_shuttle
+        jsr Background::nmi_clear_shuttle
 
         rts
     .endproc
