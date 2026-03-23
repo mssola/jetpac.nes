@@ -57,11 +57,14 @@
 
     ;; Bitmap of various boolean values lumped together.
     ;;
-    ;; |SP-- ----|
+    ;; |SP-- -MDT|
     ;; |
-    ;; |- S: whether sprites have already been moved out in the
+    ;; |- S: whether Sprites have already been moved out in the
     ;; |     'move_sprites_out' situation.
-    ;; |- P: whether the pause message on the HUD has to be toggled.
+    ;; |- P: whether the Pause message on the HUD has to be toggled.
+    ;; |- M: the shuttle should Move. Only used coupled with T.
+    ;; |- D: the taking off animation should be moving downwards.
+    ;; |- T: the rocket is Taking off.
     zp_flags = $38
 
     ;; Initialization routine that is to be called before enabling NMIs back for
@@ -171,6 +174,16 @@
     .endproc
 
     .proc update
+        ;; Are we in the shuttle transition?
+        lda Driver::zp_flags
+        and #$01
+        beq @check_player_timer
+
+        ;; Yes! Then just handle the shuttle animation and move into sprite
+        ;; cycling.
+        JAL Driver::handle_shuttle
+
+    @check_player_timer:
         ;; If the player timer is over, jump to the game immediately. Otherwise
         ;; decrement the counter.
         lda zp_player_timer
@@ -301,8 +314,21 @@
         ;; over with the game screen.
         lda Globals::zp_flags
         and #$10
-        beq @sprite_cycling
+        bne @player_got_toasted
 
+        ;; Nope, the player is just fine. Just an extra check: do we have all
+        ;; shuttle parts?
+        lda Items::zp_collected
+        cmp #9
+        bne @sprite_cycling
+
+        ;; Yes, we do! Then we check if the player is colliding with the shuttle
+        ;; platform. If so it's time to blast off
+        jsr Items::player_in_shuttle
+        beq @sprite_cycling
+        JAL Driver::init_take_off
+
+    @player_got_toasted:
         ;; Invalidate bullets and enemies if we haven't already.
         bit Driver::zp_flags
         bmi @check_explosions
@@ -338,25 +364,10 @@
         ;; Invalidate items, which were skipped on move_sprites_out() on purpose
         ;; to keep them after each death. But since we are about to go to the
         ;; title screen, now they are no longer useful.
-        lda #$FF
-        ldx #0
-        ldy #Items::POOL_CAPACITY
-    @items_reset_loop:
-        sta Items::zp_pool_base, x
-        NEXT_ITEM_INDEX_X
-        dey
-        bne @items_reset_loop
+        jsr Items::invalidate_all
 
     @reset_timers:
-        ;; Reset the player's timer to enter the game screen again.
-        lda #PLAYER_TIMER_VALUE
-        sta zp_player_timer
-
-        ;; Restart the blinking animation.
-        lda #BLINKING_TIME
-        sta Driver::zp_blink_timer
-        lda #$80
-        sta Driver::zp_blink_status
+        jsr Driver::reset_timers
 
     @sprite_cycling:
         __fallthrough__ sprite_cycling
@@ -643,6 +654,258 @@
             rts
         .endproc
     .endif
+
+    ;; Reset all timers which are relevant for entering a new screen.
+    .proc reset_timers
+        ;; Reset the player's timer to enter the game screen again.
+        lda #PLAYER_TIMER_VALUE
+        sta zp_player_timer
+
+        ;; Restart the blinking animation.
+        lda #BLINKING_TIME
+        sta Driver::zp_blink_timer
+        lda #$80
+        sta Driver::zp_blink_status
+
+        rts
+    .endproc
+
+    ;; Initialize the "take off" animation. From this point forward the
+    ;; Drivers::update() function will no longer go through its normal route
+    ;; and it will just call Drivers::handle_shuttle().
+    ;;
+    ;; Hence, this function sets/unsets all the relevant flags, and sets
+    ;; 'OAM::m_sprites' to only contain the sprites for the animation. The 'ppu'
+    ;; and 'shuttle' flags will also be touched so any background elements from
+    ;; the shuttle are also cleared out.
+    .proc init_take_off
+        ;;;
+        ;; Manually create all 12 sprites that make up the shuttle in the take
+        ;; off animation. This is seemingly a lot of code, but it's just sprite
+        ;; initialization over and over.
+
+        ;; Y screen coordinates.
+        lda #Background::GROUND_Y_COORD - 48
+        sta OAM::m_sprites
+        sta OAM::m_sprites + 4
+
+        lda #Background::GROUND_Y_COORD - 40
+        sta OAM::m_sprites + 8
+        sta OAM::m_sprites + 12
+
+        lda #Background::GROUND_Y_COORD - 32
+        sta OAM::m_sprites + 16
+        sta OAM::m_sprites + 20
+
+        lda #Background::GROUND_Y_COORD - 24
+        sta OAM::m_sprites + 24
+        sta OAM::m_sprites + 28
+
+        lda #Background::GROUND_Y_COORD - 16
+        sta OAM::m_sprites + 32
+        sta OAM::m_sprites + 36
+
+        lda #Background::GROUND_Y_COORD - 8
+        sta OAM::m_sprites + 40
+        sta OAM::m_sprites + 44
+
+        ;; Tile IDs
+        lda #$04
+        sta OAM::m_sprites + 1
+        lda #$05
+        sta OAM::m_sprites + 5
+
+        lda #$14
+        sta OAM::m_sprites + 9
+        lda #$15
+        sta OAM::m_sprites + 13
+
+        lda #$06
+        sta OAM::m_sprites + 17
+        lda #$07
+        sta OAM::m_sprites + 21
+
+        lda #$16
+        sta OAM::m_sprites + 25
+        lda #$17
+        sta OAM::m_sprites + 29
+
+        lda #$08
+        sta OAM::m_sprites + 33
+        lda #$09
+        sta OAM::m_sprites + 37
+
+        lda #$42
+        sta OAM::m_sprites + 41
+        lda #$43
+        sta OAM::m_sprites + 45
+
+        ;; Zero out attributes
+        lda #0
+        sta OAM::m_sprites + 2
+        sta OAM::m_sprites + 6
+        sta OAM::m_sprites + 10
+        sta OAM::m_sprites + 14
+        sta OAM::m_sprites + 18
+        sta OAM::m_sprites + 22
+        sta OAM::m_sprites + 26
+        sta OAM::m_sprites + 30
+        sta OAM::m_sprites + 34
+        sta OAM::m_sprites + 38
+        sta OAM::m_sprites + 42
+        sta OAM::m_sprites + 46
+
+        ;; X screen coordinates.
+        lda #Items::DROPPING_SCREEN_X
+        sta OAM::m_sprites + 3
+        sta OAM::m_sprites + 11
+        sta OAM::m_sprites + 19
+        sta OAM::m_sprites + 27
+        sta OAM::m_sprites + 35
+        sta OAM::m_sprites + 43
+
+        lda #Items::DROPPING_SCREEN_X + 8
+        sta OAM::m_sprites + 7
+        sta OAM::m_sprites + 15
+        sta OAM::m_sprites + 23
+        sta OAM::m_sprites + 31
+        sta OAM::m_sprites + 39
+        sta OAM::m_sprites + 47
+
+        ;;;
+        ;; Clear out the rest of the sprites. Note that this is done manually
+        ;; and not via the rest of helper functions because it's faster and it
+        ;; touches 'OAM::m_sprites' directly.
+
+        ldx #(12 * 4)           ; NOTE: 12 sprites from the shuttle.
+        lda #$FF
+    @clear_loop:
+        sta OAM::m_sprites, x
+        inx
+        inx
+        inx
+        inx
+        bne @clear_loop
+
+        ;;;
+        ;; Flags and stuff.
+
+        ;; Enable the 'T' flag. That is, we signal to the Driver::update()
+        ;; function that the "take off" animation is going on and it should call
+        ;; Driver::handle_shuttle() instead of going the regular route.
+        ;;
+        ;; NOTE: all other flags are cleared out on purpose as they are no
+        ;; longer relevant.
+        lda #1
+        sta Driver::zp_flags
+
+        ;; Force the shuttle to be removed from the background (see interrupt.s
+        ;; for the specific handling for this).
+        lda #0
+        sta Items::zp_collected
+
+        ;; Enable the 'ppu' and the 'shuttle' flags. This, coupled with the
+        ;; previous zeroing out of 'Items::zp_collected', makes the background
+        ;; shuttle disappear in favor of the animated meta-sprite.
+        lda Globals::zp_flags
+        ora #%01100000
+        sta Globals::zp_flags
+
+        rts
+    .endproc
+
+    ;; Handle the "take off" animation from the shuttle. That is, move it
+    ;; upwards/downwards depending on the 'D' bit, and check for "collisions" on
+    ;; certain spots where the animation should flip or be over.
+    .proc handle_shuttle
+        ;; Move the shuttle every other frame.
+        lda Driver::zp_flags
+        eor #$04
+        sta Driver::zp_flags
+        and #$04
+        beq @end
+
+        ;; Move all sprites from the shuttle up/down depending on the 'D' flag.
+        ldx #0
+    @loop:
+        ;; To always check whether the 'D' flag is set on each sprite is
+        ;; admittedly not the most performant thing to do. But it's easy and
+        ;; this function is literally the only thing that will be done
+        ;; computing-wise, so whatever...
+        lda Driver::zp_flags
+        and #$02
+        beq @up
+        inc OAM::m_sprites, x
+        jmp @next
+    @up:
+        dec OAM::m_sprites, x
+
+    @next:
+        ;; The rocket is made up of 12 sprites, and each one takes 4 bytes on
+        ;; OAM space.
+        inx
+        inx
+        inx
+        inx
+        cpx #(12 * 4)
+        bne @loop
+
+        ;; Is the shuttle at a limit when it should either flip the 'D' bit or
+        ;; declare the animation to be over?
+        lda Driver::zp_flags
+        and #$02
+        lsr
+        tax
+        lda limits, x
+        cmp OAM::m_sprites
+        bne @end
+
+        ;; Flip the 'D' bit. If doing so results on a zero bit, then we know we
+        ;; are back at the ground and hence we should stop the
+        ;; animation. Otherwise we should store the result so we move downwards
+        ;; next time.
+        lda Driver::zp_flags
+        eor #$02
+        tax
+        and #$02
+        bne @set
+
+        ;; The animation is over. Reset the flags to the expected 'S' one. Not
+        ;; that we care too much about it, but at least we will be consistent
+        ;; with player's death and other scenarios like that.
+        lda #$80
+        sta Driver::zp_flags
+
+        ;; Increase the level :)
+        inc Globals::zp_level
+        lda Globals::zp_level
+        and #%00000111
+        sta Globals::zp_level_kind
+
+        ;; Just like we did in Drivers::switch(), we re-initialize some things
+        ;; like timers and the items. Note that re-setting the timers will force
+        ;; the Drivers::update() function to re-initialize most things
+        ;; (e.g. enemies).
+        jsr Driver::reset_timers
+        jsr Items::init_level
+
+        ;; Enable the 'ppu' and the 'shuttle' flags, so the shuttle is back into
+        ;; the background.
+        lda Globals::zp_flags
+        ora #%01100000
+        sta Globals::zp_flags
+
+        rts
+
+    @set:
+        stx Driver::zp_flags
+
+    @end:
+        rts
+
+    limits:
+        .byte Background::UPPER_MARGIN_Y_COORD, Background::GROUND_Y_COORD - 48
+    .endproc
 
     ;; Toggle the "Paused" message from the (not quite) HUD.
     ;;

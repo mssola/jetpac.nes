@@ -103,8 +103,18 @@
     tax
     and #%00100000
     beq @game_status
+
+    ;; Yes! Then, if there are no collected items, we just clear out the shuttle
+    ;; entirely (i.e. it's the shuttle take off animation), otherwise we go into
+    ;; the usual route.
+    lda Items::zp_collected
+    bne @do_update_shuttle
+    jsr Background::clear_shuttle
+    jmp @unset_shuttle_flag
+@do_update_shuttle:
     jsr Items::update_shuttle
 
+@unset_shuttle_flag:
     ;; And unset the flag.
     lda Globals::zp_flags
     and #%11011111

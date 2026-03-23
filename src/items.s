@@ -91,6 +91,10 @@
     ;; Coordinate where the dropping of items takes place.
     DROPPING_SCREEN_X = $A8
 
+    ;; Coordinates where the player is allowed to enter into the shuttle to take
+    ;; off.
+    ENTER_SCREEN_Y = $A8
+
     ;; Y screen coordinates in order for various parts to be considered as
     ;; "collected".
     MID_SHUTTLE_Y = $A7
@@ -866,6 +870,35 @@
         rts
     .endproc
 
+    ;; Sets 1 to the 'a' register if the player is "entering" the shuttle, 0
+    ;; otherwise.
+    ;;
+    ;; NOTE: this function does not check on whether that makes sense (e.g. is
+    ;; the player allowed to do it?). That's up to the caller to decide.
+    .proc player_in_shuttle
+        lda Items::zp_player_screen_x
+
+        cmp #DROPPING_SCREEN_X - 8
+        bcs @maybe
+        jmp @no
+    @maybe:
+        cmp #DROPPING_SCREEN_X + 8
+        bcc @check_vertical
+        jmp @no
+
+    @check_vertical:
+        lda Items::zp_player_screen_y
+        cmp #ENTER_SCREEN_Y
+        bcc @no
+
+    @yes:
+        lda #1
+        rts
+    @no:
+        lda #0
+        rts
+    .endproc
+
     ;; Let go the item from the player if there is one being grabbed.
     .proc let_go_on_death
         ;; First of all, we need do check if the player was actually holding an
@@ -938,30 +971,28 @@
         rts
     .endproc
 
+    ;; Invalidate all items from the screen.
+    .proc invalidate_all
+        lda #$FF
+        ldx #0
+        ldy #Items::POOL_CAPACITY
+
+    @items_reset_loop:
+        sta Items::zp_pool_base, x
+
+        NEXT_ITEM_INDEX_X
+        dey
+        bne @items_reset_loop
+
+        rts
+    .endproc
+
     ;; Prepare the background scenary for items. Namely, the rocket parts which
     ;; belong to the background.
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
     .proc prepare_background_scene
-        ;; The low part of the rocket.
-        bit PPU::m_status
-        lda #$2A
-        sta PPU::m_address
-        lda #$F5
-        sta PPU::m_address
-        ldx #$0C
-        stx PPU::m_data
-        inx
-        stx PPU::m_data
-
-        lda #$2B
-        sta PPU::m_address
-        lda #$15
-        sta PPU::m_address
-        inx
-        stx PPU::m_data
-        inx
-        stx PPU::m_data
+        jsr draw_low_part_shuttle
 
         lda Globals::zp_level_kind
         beq @end
@@ -974,7 +1005,12 @@
         rts
     .endproc
 
-    ;; Update the background scenary for the shuttle.
+    ;; Update the background scenery for the shuttle. This has to take into
+    ;; account not just the background elements, but also the attributes for
+    ;; each case to account for the fuel getting in. It also handles the basic
+    ;; case of having just the low part as we might come from a previous level
+    ;; which has "dirtied" out the attributes. All in all, the implementation is
+    ;; not the sexiest thing ever, but it gets the job done :)
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
     .proc update_shuttle
@@ -1001,7 +1037,7 @@
         sta PPU::m_address
         lda #%10101010
         sta PPU::m_data
-        bne @end
+        jmp @end
 
     @half_high_middle:
         lda Items::zp_collected
@@ -1014,7 +1050,7 @@
         sta PPU::m_address
         lda #%10100010
         sta PPU::m_data
-        bne @end
+        jmp @end
 
     @low_middle:
         lda Items::zp_collected
@@ -1053,14 +1089,50 @@
         sta PPU::m_address
         lda #%10101010
         sta PPU::m_data
+        bne @end
 
     @just_top:
         cmp #3
         bcc @just_middle
         jsr draw_high_part_shuttle
 
+        ;; Set the attributes to the default one just in case we are switching
+        ;; from a previous level.
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$E5
+        sta PPU::m_address
+        lda #0
+        sta PPU::m_data
+
     @just_middle:
         jsr draw_middle_part_shuttle
+
+        ;; Set the attributes to the default one just in case we are switching
+        ;; from a previous level.
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$ED
+        sta PPU::m_address
+        lda #0
+        sta PPU::m_data
+
+        ;; NOTE: just in case we move into the next level and we need to
+        ;; reconstruct the low part of the shuttle after the "take off"
+        ;; animation cleared it away.
+        jsr draw_low_part_shuttle
+
+        ;; Set the attributes to the default one just in case we are switching
+        ;; from a previous level.
+        bit PPU::m_status
+        lda #$2B
+        sta PPU::m_address
+        lda #$F5
+        sta PPU::m_address
+        lda #0
+        sta PPU::m_data
 
     @end:
         rts
@@ -1111,6 +1183,33 @@
         bit PPU::m_status
         sty PPU::m_address
         lda #$95
+        sta PPU::m_address
+        inx
+        stx PPU::m_data
+        inx
+        stx PPU::m_data
+
+        rts
+    .endproc
+
+    ;; Update the background scenary to show the low part of the shuttle.
+    ;;
+    ;; NOTE: this has to be called with the PPU disabled.
+    .proc draw_low_part_shuttle
+        ;; The low part of the rocket.
+        bit PPU::m_status
+        lda #$2A
+        sta PPU::m_address
+        lda #$F5
+        sta PPU::m_address
+        ldx #$0C
+        stx PPU::m_data
+        inx
+        stx PPU::m_data
+
+        lda #$2B
+        sta PPU::m_address
+        lda #$15
         sta PPU::m_address
         inx
         stx PPU::m_data

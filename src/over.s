@@ -152,52 +152,8 @@
         dex
         bne @clear_ground_loop
 
-        ;; The low part of the rocket.
-        bit PPU::m_status
-        ldx #$2B
-        stx PPU::m_address
-        ldx #$15
-        stx PPU::m_address
-        sta PPU::m_data
-        sta PPU::m_data
-
-        ;; High part of the rocket.
-        bit PPU::m_status
-        ldy #$2A
-        sty PPU::m_address
-        ldx #$75
-        stx PPU::m_address
-        sta PPU::m_data
-        sta PPU::m_data
-
-        bit PPU::m_status
-        sty PPU::m_address
-        ldx #$95
-        stx PPU::m_address
-        sta PPU::m_data
-        sta PPU::m_data
-
-        bit PPU::m_status
-        sty PPU::m_address
-        ldx #$B5
-        stx PPU::m_address
-        sta PPU::m_data
-        sta PPU::m_data
-
-        ;; Middle part of the rocket.
-        bit PPU::m_status
-        sty PPU::m_address
-        ldx #$D5
-        stx PPU::m_address
-        sta PPU::m_data
-        sta PPU::m_data
-
-        bit PPU::m_status
-        sty PPU::m_address
-        ldx #$F5
-        stx PPU::m_address
-        sta PPU::m_data
-        sta PPU::m_data
+        ;; Clear the shuttle from the background.
+        jsr Background::clear_shuttle
 
         rts
     .endproc
