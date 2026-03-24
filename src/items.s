@@ -105,7 +105,7 @@
     .ifdef PARTIAL
         ITEM_TIMER = HZ * 4
     .else
-        ITEM_TIMER = HZ * 25
+        ITEM_TIMER = HZ * 20
     .endif
     ITEM_TIMER_LO = ITEM_TIMER & $00FF
     ITEM_TIMER_HI = (ITEM_TIMER & $FF00) >> 8
