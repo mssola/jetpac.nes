@@ -139,7 +139,7 @@
         sta Globals::zp_flags
 
         ;; And the scores should be updated on the game screen as well.
-        lda #$80
+        lda #$C0
         sta Globals::zp_extra_flags
 
         rts

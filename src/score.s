@@ -128,6 +128,79 @@
         rts
     .endproc
 
+    ;; Save the score of either of the two players if any of them are higher
+    ;; than the high score we have right now.
+    .proc save_hi_score
+        ;;;
+        ;; Check player 1.
+
+        ldx #(PLAYERS_BUFF_SIZE - 2)
+        ldy #5
+
+    @player1_loop:
+        lda Score::m_hi, y
+        cmp Score::m_players, x
+        bcc @save_player1
+        dex
+        dex
+        dey
+        cpy #$FF
+        bne @player1_loop
+
+        ;; No dice! If we are in multiplayer mode, then check player 2,
+        ;; otherwise just quit.
+        bit Globals::zp_multiplayer
+        bpl @end
+
+        ;;;
+        ;; Check player 2.
+
+        ldx #(PLAYERS_BUFF_SIZE - 1)
+        ldy #5
+
+    @player2_loop:
+        lda Score::m_hi, y
+        cmp Score::m_players, x
+        bcc @save_player2
+        dex
+        dex
+        dey
+        cpy #$FF
+        bne @player2_loop
+
+        ;; Not player 2 either. Just quit.
+        rts
+
+        ;;;
+        ;; One of the players actually achieved a high score. Let's save it.
+
+    @save_player1:
+        ldx #0
+        beq @save
+    @save_player2:
+        ldx #1
+
+    @save:
+        ldy #0
+    @save_loop:
+        lda Score::m_players, x
+        sta Score::m_hi, y
+
+        inx
+        inx
+        iny
+        cpy #6
+        bne @save_loop
+
+        ;; And set the 'high' bit so this change is reflected on screen.
+        lda Globals::zp_extra_flags
+        ora #$40
+        sta Globals::zp_extra_flags
+
+    @end:
+        rts
+    .endproc
+
     ;; Update the score for both players. This might be a bit too much on single
     ;; player mode but we have to show both scores on the title screen
     ;; anyways. Hence, since we have all the time in the world anyways, we
@@ -182,6 +255,29 @@
         cpx #$FF
         bne @player2_loop
 
+        ;; Then do the high score if requested.
+
+        lda Globals::zp_extra_flags
+        and #$40
+        beq @unset
+
+        bit PPU::m_status
+        sty PPU::m_address
+        lda #$6D
+        sta PPU::m_address
+
+        clc
+        ldx #5
+    @hi_loop:
+        lda Score::m_hi, x
+        adc #$10
+        sta PPU::m_data
+
+        dex
+        cpx #$FF
+        bne @hi_loop
+
+    @unset:
         ;; Disable the 'score' flag.
         lda Globals::zp_extra_flags
         and #$3F

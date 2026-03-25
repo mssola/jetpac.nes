@@ -124,10 +124,8 @@
 
 @init:
     ;; Force the scores to appear.
-    lda #$80
+    lda #$C0
     sta Globals::zp_extra_flags
-
-    ;; TODO: update high score (see zp_extra_flags)
 
     ;; Disable the PPU and zero out variables which shadow PPU registers.
     lda #0
@@ -263,6 +261,10 @@
     ;; Can the player start over?
     pla
     beq @main_game_loop
+
+    ;; If we have a new high score, save it now before initializing scores
+    ;; again.
+    jsr Score::save_hi_score
 
     ;; We will skip the initialization of the assets so to avoid writing into
     ;; the first nametable when it's just fine. That being said, we still need
