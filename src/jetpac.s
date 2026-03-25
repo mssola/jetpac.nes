@@ -42,6 +42,7 @@
 .include "background.s"
 .include "prng.s"
 .include "explosions.s"
+.include "score.s"
 .include "items.s"
 .include "player.s"
 .include "enemies.s"
@@ -112,7 +113,14 @@
 .endproc
 
 .proc main
-    ;; TODO: high score initialization has to happen here.
+    ;; Initialize the high score.
+    lda #0
+    sta Score::m_hi
+    sta Score::m_hi + 1
+    sta Score::m_hi + 2
+    sta Score::m_hi + 3
+    sta Score::m_hi + 4
+    sta Score::m_hi + 5
 
 @init:
     ;; Disable the PPU and zero out variables which shadow PPU registers.
@@ -155,6 +163,10 @@
 
     ;; Initialize some variables from the "Game Over" side of the game.
     jsr Over::init
+
+    ;; Initialize the score for both players. Note that initializing the high
+    ;; score is the first thing we do in main().
+    jsr Score::init_players_scores
 
     ;; Initialize variables from the game's driver that need to be set before
     ;; NMIs start ticking.

@@ -68,6 +68,8 @@ $E3: zp_current_bullet_x
 $E7-$EF: zp_current_tiles
 $F0-$FF: zp_current_tiles
 $0200-$02FF: m_sprites
+$0300-$030B: m_players
+$030C-$0311: m_hi
 $2000: m_control
 $2001: m_mask
 $2002: m_status
@@ -81,4 +83,4 @@ $4016: m_joypad
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 419/2048 (20.46%)
+- Internal RAM: 437/2048 (21.34%)
