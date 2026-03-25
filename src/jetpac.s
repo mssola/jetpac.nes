@@ -107,7 +107,7 @@
     bpl @vblankwait2
 
     ;; NOTE: palettes are not initialized here as it's going to be one of the
-    ;; first things done on `main` code.
+    ;; first things done in main().
 
     __fallthrough__ main
 .endproc
@@ -123,6 +123,12 @@
     sta Score::m_hi + 5
 
 @init:
+    ;; Force the scores to appear.
+    lda #$80
+    sta Globals::zp_extra_flags
+
+    ;; TODO: update high score (see zp_extra_flags)
+
     ;; Disable the PPU and zero out variables which shadow PPU registers.
     lda #0
     sta PPU::m_mask

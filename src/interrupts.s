@@ -27,6 +27,12 @@
     lda #$02
     sta OAM::m_dma
 
+    ;; Should scores be updated?
+    bit Globals::zp_extra_flags
+    bpl @check_pause
+    jsr Score::nmi_update_scores
+
+@check_pause:
     ;; Toggle pause message from the HUD.
     bit Driver::zp_flags
     bvc @increase_rand

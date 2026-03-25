@@ -521,6 +521,14 @@
         lsr
         sta Items::zp_current_tiles + 1, x
 
+        ;; Account for this on the player's score.
+        ;;
+        ;; NOTE: this is in opposition as to how it was handled in the original
+        ;; game where the score was accounted on part/tank pickup, not
+        ;; dropping. I find this more reliable and easier to code, and in the
+        ;; end it's the same.
+        ADD_PART_FUEL_SCORE
+
         jmp @next
 
         ;;;
@@ -966,7 +974,8 @@
         lda #$FF
         sta Items::zp_pool_base, x
 
-        ;; TODO: score
+        ;; Account for this on the player's score.
+        ADD_ITEM_SCORE
 
         rts
     .endproc

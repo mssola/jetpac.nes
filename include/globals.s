@@ -56,4 +56,15 @@
     ;; |   1 | player's 1 state | 0: over; 1: alive        |
     ;; |   0 | active           | 0: player 1; 1: player 2 |
     zp_multiplayer = $26
+
+    ;; Extra bitmap that was needed beyond the ones that we already have. Yeah,
+    ;; I know, bad planning from my side, but now it's a bit complex to untangle
+    ;; variables like 'Globals::zp_flags'.
+    ;;
+    ;; | Bit | Short name       | Meaning                          |
+    ;; |-----+------------------+----------------------------------|
+    ;; |   7 | score            | The score has been updated.      |
+    ;; |   6 | high             | The high score has been updated. |
+    ;; | 5-0 | -                | Unused.                          |
+    zp_extra_flags = $27
 .endscope

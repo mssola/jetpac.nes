@@ -297,8 +297,9 @@
         jsr Enemies::collides
         beq @next_enemy_collision
 
-        ;; Yes! Kill the enemy and break the loop.
+        ;; Yes! Kill the enemy, keep the score and break the loop.
         jsr Enemies::bite_the_dust
+        ADD_ENEMY_SCORE
         jmp @save_bullet_move
 
     @next_enemy_collision:

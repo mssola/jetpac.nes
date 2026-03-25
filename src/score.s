@@ -118,9 +118,79 @@
 
         BCD_JUST_CARRY
 
-        ;; TODO: set a flag about updating the score on the HUD.
+        ;;;
+        ;; And set the 'score' flag, signaling a need of updating the score.
+
+        lda Globals::zp_extra_flags
+        ora #$80
+        sta Globals::zp_extra_flags
 
         rts
+    .endproc
+
+    ;; Update the score for both players. This might be a bit too much on single
+    ;; player mode but we have to show both scores on the title screen
+    ;; anyways. Hence, since we have all the time in the world anyways, we
+    ;; update both and avoid branching and stuff.
+    .proc nmi_update_scores
+        ;; The 'y' register will contain the right high byte for the PPU
+        ;; address. This is needed because scores are to be displayed on both
+        ;; the title and game screens.
+        lda PPU::zp_control
+        and #$02
+        tax
+        ldy hi_ppu_address, x
+
+        ;; Now we just put the numbers. The 'x' index has to go "backwards", and
+        ;; taking into account that both players live on the same buffer. The
+        ;; tile ID is basically the integer value + $10, which is the position
+        ;; of the '0' character on our tile set.
+
+        bit PPU::m_status
+        sty PPU::m_address
+        lda #$62
+        sta PPU::m_address
+
+        clc
+        ldx #(PLAYERS_BUFF_SIZE - 2)
+    @player1_loop:
+        lda Score::m_players, x
+        adc #$10
+        sta PPU::m_data
+
+        dex
+        dex
+        cpx #$FE
+        bne @player1_loop
+
+        ;; And the same for the second player.
+
+        bit PPU::m_status
+        sty PPU::m_address
+        lda #$78
+        sta PPU::m_address
+
+        clc
+        ldx #(PLAYERS_BUFF_SIZE - 1)
+    @player2_loop:
+        lda Score::m_players, x
+        adc #$10
+        sta PPU::m_data
+
+        dex
+        dex
+        cpx #$FF
+        bne @player2_loop
+
+        ;; Disable the 'score' flag.
+        lda Globals::zp_extra_flags
+        and #$3F
+        sta Globals::zp_extra_flags
+
+        rts
+
+    hi_ppu_address:
+        .byte $20, $00, $28, $00
     .endproc
 .endscope
 
