@@ -1,6 +1,7 @@
 This is a port to the NES/Famicom of the renown
-[jetpac](https://en.wikipedia.org/wiki/Jetpac) game from Ultimate Play the Game.
-You can find a ROM to play the game in the [releases
+[jetpac](https://en.wikipedia.org/wiki/Jetpac) game from Ashby Computers and
+Graphics Limited (trading as Ultimate Play the Game). You can find a ROM to play
+the game in the [releases
 page](https://github.com/mssola/jetpac.nes/releases). Read the
 [CONTRIBUTING.md](./CONTRIBUTING.md) file if you want to make any changes,
 report an issue or make a suggestion.
@@ -24,12 +25,13 @@ what's different from the original and what to expect from this port.
 
 ## License
 
-The original game was developed and published by Ultimate Play the Game and
-released for the ZX Spectrum and VIC-20 in 1983 and the BBC Micro in 1984. Thus,
-the original idea is not mine, and I only did the porting to the NES/Famicom
-platform. Similarly, all the assets and the cover image are just sloppy ports
-that I did from the original game. Thus, all credits for the original idea and
-artistic choices are entirely on the original authors, not me.
+The original game was developed and published by Ashby Computers and Graphics
+Limited (trading as Ultimate Play the Game), and released for the ZX Spectrum
+and VIC-20 in 1983 and the BBC Micro in 1984. Thus, the original idea is not
+mine, and I only did the porting to the NES/Famicom platform. Similarly, all the
+assets and the cover image are just sloppy ports that I did from the original
+game. Thus, all credits for the original idea and artistic choices are entirely
+on the original authors, not me.
 
 This port is released under the
 [GPLv3+](http://www.gnu.org/licenses/gpl-3.0.txt), Copyright (C) 2023-<i>Ω</i>

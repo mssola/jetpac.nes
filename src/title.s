@@ -3,8 +3,8 @@
 ;; All the functions and variables which are related to the title screen.
 .scope Title
     ;; Y and X coordinates for the sprite that guides the player on the menu.
-    SPRITE_Y_POSITION0 = $A7
-    SPRITE_Y_POSITION1 = $BF
+    SPRITE_Y_POSITION0 = $9F
+    SPRITE_Y_POSITION1 = $B7
     SPRITE_X_POSITION  = $40
 
     ;; The title has a timer as a delay between joypad presses from the player.
