@@ -527,7 +527,9 @@
         ;; game where the score was accounted on part/tank pickup, not
         ;; dropping. I find this more reliable and easier to code, and in the
         ;; end it's the same.
+        stx Globals::zp_tmp2
         ADD_PART_FUEL_SCORE
+        ldx Globals::zp_tmp2
 
         jmp @next
 
@@ -946,8 +948,6 @@
 
     ;; Collect an item as indexed by 'zp_pool_index'. This function assumes that
     ;; the item is already valid.
-    ;;
-    ;; NOTE: the 'y' register is preserved.
     .proc collect
         ldx Items::zp_pool_index
 
@@ -975,7 +975,9 @@
         sta Items::zp_pool_base, x
 
         ;; Account for this on the player's score.
+        stx Globals::zp_tmp2
         ADD_ITEM_SCORE
+        ldx Globals::zp_tmp2
 
         rts
     .endproc

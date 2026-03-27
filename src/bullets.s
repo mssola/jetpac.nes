@@ -299,7 +299,9 @@
 
         ;; Yes! Kill the enemy, keep the score and break the loop.
         jsr Enemies::bite_the_dust
+        sty Globals::zp_tmp2
         ADD_ENEMY_SCORE
+        ldy Globals::zp_tmp2
         jmp @save_bullet_move
 
     @next_enemy_collision:

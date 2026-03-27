@@ -1,10 +1,10 @@
-;; Clear the carry and add ADDR to the indexed digit on 'Score::m_players'. If
-;; the result is larger or equal than 10, then 0 is stored and the carry flag is
-;; set. Otherwise the carry flag is cleared.
+;; Clear the carry and add ADDR, y to the indexed digit on
+;; 'Score::m_players'. If the result is larger or equal than 10, then 0 is
+;; stored and the carry flag is set. Otherwise the carry flag is cleared.
 .macro BCD_ADD ADDR
     lda Score::m_players, x
     clc
-    adc ADDR
+    adc ADDR, y
     cmp #10
     bcc :+
     sec
@@ -13,12 +13,12 @@
     sta Score::m_players, x
 .endmacro
 
-;; Add ADDR to the indexed digit on 'Score::m_players' _with_ carry. If the
+;; Add ADDR, y to the indexed digit on 'Score::m_players' _with_ carry. If the
 ;; result is larger or equal than 10, then 0 is stored and the carry flag is
 ;; set. Otherwise the carry flag is cleared.
 .macro BCD_ADDC ADDR
     lda Score::m_players, x
-    adc ADDR
+    adc ADDR, y
     clc
     cmp #10
     bcc :+
@@ -65,6 +65,12 @@
     ;; The high score for this session.
     m_hi = $30C           ; asan:reserve $06
 
+    ;; Indeces for the 'additions' address. Relevant only when calling
+    ;; add_to_player_y().
+    ADD_ENEMY_IDX = 0
+    ADD_PART_FUEL_IDX = 3
+    ADD_ITEM_IDX = 6
+
     ;; Initialize the scores for both players.
     .proc init_players_scores
         lda #0
@@ -79,10 +85,10 @@
         rts
     .endproc
 
-    ;; Add to the current player's score the number stored in
-    ;; 'Globals::zp_tmp{0,1,2}', where 'Globals::zp_tmp0' has the least
-    ;; significant number.
-    .proc add_to_player
+    ;; Add to the current player's score the number stored in "additions, y". As
+    ;; a caller you don't need to know the exact format of this data, so set to
+    ;; 'y' one of the 'ADD_*_IDX' constants from up above.
+    .proc add_to_player_y
         ;; See 'Score::m_players' on why this is the way to select the current
         ;; player's score.
         lda Globals::zp_multiplayer
@@ -91,17 +97,17 @@
 
         ;;;
         ;; The first three digits are the product of adding the contents of
-        ;; 'Globals::zp_tmp{0,1,2}'.
+        ;; 'additions, y'.
 
-        BCD_ADD Globals::zp_tmp0
-        inx
-        inx
-
-        BCD_ADDC Globals::zp_tmp1
+        BCD_ADD additions
         inx
         inx
 
-        BCD_ADDC Globals::zp_tmp2
+        BCD_ADDC additions + 1
+        inx
+        inx
+
+        BCD_ADDC additions + 2
         inx
         inx
 
@@ -126,6 +132,18 @@
         sta Globals::zp_extra_flags
 
         rts
+
+        ;; Defines the values by which the score can be incremented. They are
+        ;; three bytes per object in little-endian format.
+    additions:
+        ;; Enemy
+        .byte $05, $02, $00
+
+        ;; Part / fuel tank
+        .byte $00, $00, $01
+
+        ;; Item
+        .byte $00, $05, $02
     .endproc
 
     ;; Save the score of either of the two players if any of them are higher
@@ -292,34 +310,19 @@
 
 ;; Add the score for a dead enemy to the current player's score.
 .macro ADD_ENEMY_SCORE
-    lda #5
-    sta Globals::zp_tmp0
-    lda #2
-    sta Globals::zp_tmp1
-    lda #0
-    sta Globals::zp_tmp2
-    jsr Score::add_to_player
+    ldy #Score::ADD_ENEMY_IDX
+    jsr Score::add_to_player_y
 .endmacro
 
 ;; Add the score for grabbing a shuttle part / fuel tank to the current player's
 ;; score.
 .macro ADD_PART_FUEL_SCORE
-    lda #0
-    sta Globals::zp_tmp0
-    lda #0
-    sta Globals::zp_tmp1
-    lda #1
-    sta Globals::zp_tmp2
-    jsr Score::add_to_player
+    ldy #Score::ADD_PART_FUEL_IDX
+    jsr Score::add_to_player_y
 .endmacro
 
 ;; Add the score for grabbing an item to the current player's score.
 .macro ADD_ITEM_SCORE
-    lda #0
-    sta Globals::zp_tmp0
-    lda #5
-    sta Globals::zp_tmp1
-    lda #2
-    sta Globals::zp_tmp2
-    jsr Score::add_to_player
+    ldy #Score::ADD_ITEM_IDX
+    jsr Score::add_to_player_y
 .endmacro
