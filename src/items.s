@@ -130,7 +130,9 @@
     .proc init_level
         ldx #0
 
-        lda Globals::zp_level_kind
+        ;; We have to re-assemble the shuttle every 4 stages.
+        lda Globals::zp_level
+        and #$03
         bne @other_screens
 
         ;; Zero out the state except for the 'C' bit.
@@ -640,9 +642,10 @@
         bit Items::zp_state
         bmi @next
 
-        ;; We don't need extra precautions except when the level kind is the
-        ;; first one. In that case we must guarantee the right shuttle order.
-        lda Globals::zp_level_kind
+        ;; We don't need extra precautions except when we are re-arrenging the
+        ;; shuttle. In that case we must guarantee the right shuttle order.
+        lda Globals::zp_level
+        and #$03
         bne @do_follow_player
 
         ;; Is this the first shuttle part to be collected?
@@ -1005,7 +1008,8 @@
     .proc prepare_background_scene
         jsr draw_low_part_shuttle
 
-        lda Globals::zp_level_kind
+        lda Globals::zp_level
+        and #$03
         beq @end
 
     @rest_of_the_rocket:
