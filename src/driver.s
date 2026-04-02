@@ -739,9 +739,9 @@
         lda #$09
         sta OAM::m_sprites + 37
 
-        lda #$42
+        lda #$18
         sta OAM::m_sprites + 41
-        lda #$43
+        lda #$19
         sta OAM::m_sprites + 45
 
         ;; Zero out attributes
