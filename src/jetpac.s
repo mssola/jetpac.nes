@@ -29,6 +29,7 @@
     .res $03, $00
 
 .segment "CODE"
+.asciiz "@mssola"
 
 .include "../include/apu.s"
 .include "../include/oam.s"
