@@ -48,6 +48,10 @@
     ;; masking `zp_level`.
     zp_level_kind = $25
 
+    ;; The kind of shuttle to be used. As with 'zp_level_kind', this is just a
+    ;; cached version of masking 'zp_level'.
+    zp_shuttle_kind = $26
+
     ;; | Bit | Short name       | Meaning                  |
     ;; |-----+------------------+--------------------------|
     ;; |   7 | enabled          | Multiplayer enabled.     |
@@ -55,7 +59,7 @@
     ;; |   2 | player's 2 state | 0: over; 1: alive        |
     ;; |   1 | player's 1 state | 0: over; 1: alive        |
     ;; |   0 | active           | 0: player 1; 1: player 2 |
-    zp_multiplayer = $26
+    zp_multiplayer = $27
 
     ;; Extra bitmap that was needed beyond the ones that we already have. Yeah,
     ;; I know, bad planning from my side, but now it's a bit complex to untangle
@@ -66,5 +70,5 @@
     ;; |   7 | score            | The score has been updated.      |
     ;; |   6 | high             | The high score has been updated. |
     ;; | 5-0 | -                | Unused.                          |
-    zp_extra_flags = $27
+    zp_extra_flags = $28
 .endscope

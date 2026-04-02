@@ -885,6 +885,11 @@
         lda Globals::zp_level
         and #%00000111
         sta Globals::zp_level_kind
+        lda Globals::zp_level
+        and #%00001100
+        lsr
+        lsr
+        sta Globals::zp_shuttle_kind
 
         ;; Just like we did in Drivers::switch(), we re-initialize some things
         ;; like timers and the items. Note that re-setting the timers will force

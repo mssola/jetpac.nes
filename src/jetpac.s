@@ -153,9 +153,15 @@
         sta Globals::zp_level
         and #%00000111
         sta Globals::zp_level_kind
+        lda #LEVEL
+        and #%00001100
+        lsr
+        lsr
+        sta Globals::zp_shuttle_kind
     .else
         sta Globals::zp_level
         sta Globals::zp_level_kind
+        sta Globals::zp_shuttle_kind
     .endif
 
     ;; Initialize the assets for the game. If the first sprite is not
