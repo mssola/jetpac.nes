@@ -294,13 +294,20 @@
 
         ;; Should we allocate a part from the shuttle?
         bne @try_next_shuttle
-        lda #$04
-        bne @no_attributes
+        stx Globals::zp_tmp0
+        ldx Globals::zp_shuttle_kind
+        lda Items::shuttle_sprites, x
+        ldx Globals::zp_tmp0
+        jmp @no_attributes
     @try_next_shuttle:
         cmp #$01
         bne @do_fuel_or_regular
-        lda #$06
-        beq @do_fuel_or_regular
+        stx Globals::zp_tmp0
+        ldx Globals::zp_shuttle_kind
+        lda Items::shuttle_sprites, x
+        clc
+        adc #2
+        ldx Globals::zp_tmp0
 
     @no_attributes:
         sta Globals::zp_arg0
@@ -1157,7 +1164,14 @@
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
     .proc draw_middle_part_shuttle
-        ldx #$08
+        ;; Compute the tile ID for the middle part of the shuttle depending on
+        ;; the kind.
+        ldx Globals::zp_shuttle_kind
+        lda Items::shuttle_backgrounds, x
+        clc
+        adc #4
+        tax
+
         ldy #$2A
 
         bit PPU::m_status
@@ -1184,7 +1198,11 @@
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
     .proc draw_high_part_shuttle
-        ldx #$04
+        ;; Compute the tile ID for the middle part of the shuttle depending on
+        ;; the kind.
+        ldy Globals::zp_shuttle_kind
+        ldx Items::shuttle_backgrounds, y
+
         ldy #$2A
 
         bit PPU::m_status
@@ -1211,13 +1229,20 @@
     ;;
     ;; NOTE: this has to be called with the PPU disabled.
     .proc draw_low_part_shuttle
+        ;; Compute the tile ID for the low part of the shuttle depending on the
+        ;; kind.
+        ldx Globals::zp_shuttle_kind
+        lda Items::shuttle_backgrounds, x
+        clc
+        adc #8
+        tax
+
         ;; The low part of the rocket.
         bit PPU::m_status
         lda #$2A
         sta PPU::m_address
         lda #$F5
         sta PPU::m_address
-        ldx #$0C
         stx PPU::m_data
         inx
         stx PPU::m_data
@@ -1233,4 +1258,11 @@
 
         rts
     .endproc
+
+shuttle_sprites:
+    ;; TODO: rest of IDs
+    .byte $04, $00, $00, $00
+shuttle_backgrounds:
+    ;; TODO: rest of IDs
+    .byte $04, $00, $00, $00
 .endscope

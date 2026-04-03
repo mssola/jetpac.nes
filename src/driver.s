@@ -714,34 +714,38 @@
         sta OAM::m_sprites + 44
 
         ;; Tile IDs
-        lda #$04
+        ldx Globals::zp_shuttle_kind
+        lda Items::shuttle_sprites, x
         sta OAM::m_sprites + 1
-        lda #$05
+        clc
+        adc #1
         sta OAM::m_sprites + 5
 
-        lda #$14
+        adc #$0F
         sta OAM::m_sprites + 9
-        lda #$15
+        adc #1
         sta OAM::m_sprites + 13
 
-        lda #$06
+        lda Items::shuttle_sprites, x
+        adc #2
         sta OAM::m_sprites + 17
-        lda #$07
+        adc #1
         sta OAM::m_sprites + 21
 
-        lda #$16
+        adc #$0F
         sta OAM::m_sprites + 25
-        lda #$17
+        adc #1
         sta OAM::m_sprites + 29
 
-        lda #$08
+        lda Items::shuttle_sprites, x
+        adc #4
         sta OAM::m_sprites + 33
-        lda #$09
+        adc #1
         sta OAM::m_sprites + 37
 
-        lda #$18
+        adc #$0F
         sta OAM::m_sprites + 41
-        lda #$19
+        adc #1
         sta OAM::m_sprites + 45
 
         ;; Zero out attributes
