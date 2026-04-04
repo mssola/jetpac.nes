@@ -1260,9 +1260,7 @@
     .endproc
 
 shuttle_sprites:
-    ;; TODO: rest of IDs
-    .byte $04, $00, $00, $00
+    .byte $04, $84, $A4, $C4
 shuttle_backgrounds:
-    ;; TODO: rest of IDs
-    .byte $04, $00, $00, $00
+    .byte $04, $B0, $C0, $D0
 .endscope
