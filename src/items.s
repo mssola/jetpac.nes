@@ -251,7 +251,6 @@
         rts
 
     @invalidate_third:
-        ;; Always invalidate the third item.
         lda #$FF
         sta Items::zp_pool_base + 6, x
 
@@ -1019,7 +1018,6 @@
         and #$03
         beq @end
 
-    @rest_of_the_rocket:
         jsr draw_high_part_shuttle
         jsr draw_middle_part_shuttle
 
@@ -1129,7 +1127,15 @@
         sta PPU::m_data
 
     @just_middle:
+        lda Items::zp_collected
+        cmp #2
+        bcc @skip_draw_middle
         jsr draw_middle_part_shuttle
+
+    @skip_draw_middle:
+        ;; NOTE: just in case we move into the next level and we need to
+        ;; reconstruct the low part of the shuttle after the "take off"
+        ;; animation cleared it away.
 
         ;; Set the attributes to the default one just in case we are switching
         ;; from a previous level.
@@ -1141,9 +1147,6 @@
         lda #0
         sta PPU::m_data
 
-        ;; NOTE: just in case we move into the next level and we need to
-        ;; reconstruct the low part of the shuttle after the "take off"
-        ;; animation cleared it away.
         jsr draw_low_part_shuttle
 
         ;; Set the attributes to the default one just in case we are switching
