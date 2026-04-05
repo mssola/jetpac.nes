@@ -215,7 +215,7 @@
         ;; If we have finished the game once, and we have not collected the
         ;; SUSE's coin yet, let it be.
         lda Globals::zp_level
-        cmp #8
+        cmp #16
         bne @invalidate_third
         lda Items::zp_state
         and #$04
