@@ -870,14 +870,22 @@
 
         ;; Flip the 'D' bit. If doing so results on a zero bit, then we know we
         ;; are back at the ground and hence we should stop the
-        ;; animation. Otherwise we should store the result so we move downwards
-        ;; next time.
+        ;; animation.
         lda Driver::zp_flags
         eor #$02
         tax
         and #$02
+        beq @over
+
+        ;; If in the next level the shuttle kind will change, then we call off
+        ;; the animation, as it happened in the original game. Otherwise we
+        ;; should store the result so we move downwards next time.
+        lda Globals::zp_level
+        and #$03
+        cmp #$03
         bne @set
 
+    @over:
         ;; The animation is over. Reset the flags to the expected 'S' one. Not
         ;; that we care too much about it, but at least we will be consistent
         ;; with player's death and other scenarios like that.
