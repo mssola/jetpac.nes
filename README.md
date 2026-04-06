@@ -59,7 +59,7 @@ original. Hence, I've done something that looks colorful and which is within the
 palettes for this game. Couple this with what I mention below on shooting, and
 you will quickly realize that shooting is a different experience than the
 original version. Hopefully this is not too distracting to players which were
-used at the original aesthetics.
+used to the original aesthetics.
 
 Finally, whenever the player fills the shuttle with fuel tanks, the original
 version displayed a small step of purple being filled in the shuttle. In the
@@ -72,9 +72,15 @@ it distracting.
 
 ## Controls
 
-The controls of the player should be quite close to the original, even if
-physics might be a bit different here and there. Overall, it shouldn't be too
-distracting and I'm fine with them being slightly different to the original.
+The player will feel floaty as with the original controls, but bear in mind that
+physics will be a bit different here and there. Collisions from the player to
+platforms will also feel kind of similar, even if, again, they are not an exact
+match to the original. In summary, I've tried to replicate the "spirit" of the
+controls, without being obsessed to make them an exact match with the original.
+
+Lastly, note that if you walk close the a platform's edge the game won't force
+you down as with the original. I found that unnecessary and it made things more
+complex on the technical side, so I skipped implementing this behavior.
 
 ## Shooting
 
