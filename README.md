@@ -114,17 +114,16 @@ This game is designed for the [NROM](https://www.nesdev.org/wiki/NROM) cartridge
 board. Specifically, the 32K on PRG ROM capacity, and 8K on CHR ROM
 capacity. This is the most basic cartridge board available, and it was more than
 enough for this simple game. In fact, despite being completely careless on ROM
-space, I only ended up filling ~30% of ROM space for this basic configuration
-(check the exact numbers in the [CHANGELOG.md](./CHANGELOG.md) file).
+space, I only ended up filling ~30% of it for this basic configuration (check
+the exact numbers in the [CHANGELOG.md](./CHANGELOG.md) file).
 
 Moreover, this is a game that doesn't do any scrolling. Thus, I could've picked
 up any kind of mirroring for it, but here I'm using the horizontal one.
 
 Last but not least, the build system produces both an NTSC and a PAL version of
-the game. Coming from PAL territory myself, I've made an effort to make them
-feel more or less the same way. That is, the PAL version shouldn't feel slower
-in any way than the NTSC one. If that's not the case for you, [report an
-issue](https://github.com/mssola/jetpac.nes/issues).
+the game. Coming from PAL territory myself, I've made an effort so the PAL
+version doesn't feel slower in any way than the NTSC one. If that's not the case
+for you, [report an issue](https://github.com/mssola/jetpac.nes/issues).
 
 # License
 
