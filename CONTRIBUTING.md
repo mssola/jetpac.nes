@@ -26,6 +26,14 @@ Another way is to simply submit a pull request. For this, also mind these:
 - The pull request has *only* one subject and a clear title. You are not
   submitting a pull request with tons of different unrelated commits.
 
+## Tooling
+
+In general, rely on `make deps` to tell you what you need for development. Other
+than that, if you are typing code, follow [this code
+style](https://github.com/mssola/style.nes). It's what I'm trying to follow here
+and it plays well with the tooling I have on
+[tools.nes](https://github.com/mssola/tools.nes).
+
 ## Development cycle
 
 In order to test your changes, I'd go this way:
