@@ -136,7 +136,8 @@
 
     ;; Initialize other global variables which the rest of the game assume to
     ;; have zero as their initial values. Note that it's important to have these
-    ;; variables defined before
+    ;; variables defined before calling any other initialization functions, as
+    ;; they might already make assumptions on either of these variables.
     sta Globals::zp_flags
     sta Globals::zp_multiplayer
     sta Joypad::zp_buttons

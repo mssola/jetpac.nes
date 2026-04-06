@@ -183,8 +183,7 @@
         and #$01
         beq @check_player_timer
 
-        ;; Yes! Then just handle the shuttle animation and move into sprite
-        ;; cycling.
+        ;; Yes! Then just handle the shuttle animation.
         JAL Driver::handle_shuttle
 
     @check_player_timer:
