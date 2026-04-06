@@ -892,6 +892,19 @@
         lda #$80
         sta Driver::zp_flags
 
+        ;; Clear the sprites from the animation now, as it will be distracting
+        ;; before the player et al are initialized.
+        ldx #0
+        lda #$FF
+    @clear_loop:
+        sta OAM::m_sprites, x
+        inx
+        inx
+        inx
+        inx
+        cpx #(12 * 4)           ; NOTE: 12 sprites from the shuttle.
+        bne @clear_loop
+
         ;; Increase the level :)
         inc Globals::zp_level
         lda Globals::zp_level
