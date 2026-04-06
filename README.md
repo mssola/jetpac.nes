@@ -102,9 +102,10 @@ sense.
 
 ## SUSE coin
 
-As an homage to Donkey Kong 64, you can collect a coin after completing 16
-stages. This coin features a chameleon as a reference to SUSE, since I
-originally bootstrapped this project during [Hackweek
+As an homage to [Donkey Kong 64](https://donkeykong.fandom.com/wiki/Jetpac), you
+can collect a coin after completing 16 stages. This coin features a chameleon as
+a reference to SUSE, since I originally bootstrapped this project during
+[Hackweek
 23](https://hackweek.opensuse.org/projects/port-the-jetpac-game-to-the-nes).
 
 # Technical thingies
