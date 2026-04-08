@@ -65,7 +65,7 @@
 
     ;; Setup the stack.
     ldx #$FF
-    txs
+    txs                         ; asan:stack $80-$FF
 
     ;; Disable NMIs and the APU's DMC.
     inx
