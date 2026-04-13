@@ -591,6 +591,9 @@
         ;; Increase the number of collected items.
         inc Items::zp_collected
 
+        ;; Make the "item drop" sound
+        SOUND_ITEM_DROP
+
         ;; Now we unset the 'S' bit, which is unconditionally true regardless of
         ;; the collection state. That being said, if we still need to collect
         ;; more fuel tanks (the rocket has all its parts and we have not filled
@@ -678,6 +681,9 @@
         dec Items::zp_state
     @set_modes:
         sta Items::zp_pool_base, x
+
+        ;; Make the sound for grabbing an item.
+        SOUND_ITEM_PICKUP
 
         ;; Mark the player's to be already grabbing an item.
         lda Items::zp_state
@@ -987,6 +993,9 @@
         stx Globals::zp_tmp2
         ADD_ITEM_SCORE
         ldx Globals::zp_tmp2
+
+        ;; Make the sound for item pickup.
+        SOUND_ITEM_PICKUP
 
         rts
     .endproc

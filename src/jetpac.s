@@ -42,6 +42,7 @@
 .include "assets.s"
 .include "background.s"
 .include "prng.s"
+.include "sound.s"
 .include "explosions.s"
 .include "score.s"
 .include "items.s"
@@ -52,6 +53,14 @@
 .include "over.s"
 .include "driver.s"
 .include "interrupts.s"
+
+;; Sanity check for some constant values. 'cl65' fails at this, so I'm only
+;; doing the check on 'nasm'.
+.ifdef __NASM__
+    .if Bullets::BULLET_TIMER_VALUE > Sound::BULLET_SFX_FRAME_COUNT
+        .error "Sound::BULLET_SFX_FRAME_COUNT must be smaller than Bullets::BULLET_TIMER_VALUE"
+    .endif
+.endif
 
 ;; Pretty standard reset function, nothing crazy.
 .proc reset
@@ -72,6 +81,9 @@
     stx PPU::m_control
     stx PPU::m_mask
     stx APU::m_dmc
+
+    ;; Initialize the APU.
+    jsr Sound::init
 
     ;; First PPU wait.
     bit PPU::m_status

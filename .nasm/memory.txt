@@ -63,6 +63,7 @@ $D2-$D3: zp_movement_fn
 $D4: zp_pool_index
 $D5: zp_movement_arg
 $D6: zp_palette
+$DA: zp_frame_count
 $E0: zp_pool_size
 $E1: zp_last_allocated_index
 $E2: zp_current_bullet_y
@@ -80,10 +81,22 @@ $2003: m_address
 $2005: m_scroll
 $2006: m_address
 $2007: m_data
+$4000: m_square_1_envelope
+$4001: m_square_1_sweep
+$4002: m_square_1_low
+$4003: m_square_1_high
+$4004: m_square_2_envelope
+$4005: m_square_2_sweep
+$4006: m_square_2_low
+$4007: m_square_2_high
+$400C: m_noise_envelope
+$400E: m_noise_mode
+$400F: m_noise_counter
 $4010: m_dmc
 $4014: m_dma
+$4015: m_status
 $4016: m_joypad
 $4017: m_frame_counter
 
 --- Summary (in bytes) ---
-- Internal RAM: 567/2048 (27.69%)
+- Internal RAM: 568/2048 (27.73%)

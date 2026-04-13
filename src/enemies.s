@@ -695,6 +695,9 @@
         ldx Enemies::zp_pool_index
         sta Enemies::zp_pool_base + 3, x
 
+        ;; Play an explosion effect.
+        SOUND_EXPLOSION
+
         ;; Restore back the value for the 'y' register.
         pla
         tay

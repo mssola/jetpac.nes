@@ -133,6 +133,9 @@
         beq @find_free_bullet_bucket
 
     @initialize_bucket:
+        ;; Play the bullet sound if appropiate.
+        jsr Sound::play_bullet_maybe
+
         ;; We found a free bucket. Initialize the first byte to 0 since it has
         ;; not moved yet. The heading is taken from the player's state.
         lda Player::zp_state

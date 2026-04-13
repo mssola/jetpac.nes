@@ -240,6 +240,9 @@
         sta zp_next_bullet_cycle
         sta zp_next_enemy_cycle
 
+        ;; And make the sound for entering into a level.
+        SOUND_ENTER_LEVEL
+
     @game:
         ;; Has the player died?
         lda Globals::zp_flags
@@ -818,6 +821,9 @@
         ora #%01100000
         sta Globals::zp_flags
 
+        ;; Make some noise!
+        START_TAKE_OFF_SOUND
+
         rts
     .endproc
 
@@ -927,6 +933,9 @@
         lda Globals::zp_flags
         ora #%01100000
         sta Globals::zp_flags
+
+        ;; Stop the sound effect for take off.
+        STOP_TAKE_OFF_SOUND
 
         rts
 

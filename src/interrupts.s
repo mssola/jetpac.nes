@@ -161,6 +161,11 @@
     sta PPU::m_scroll
     sta PPU::m_scroll
 
+    ;; The sound effect from bullets follow a frame rule. Tick the frame count
+    ;; from sound as the very last thing to be done before unblocking the main
+    ;; code.
+    jsr Sound::tick
+
     ;; Unblock the main code.
     lda #%01111111
     and Globals::zp_flags

@@ -82,6 +82,42 @@ Lastly, note that if you walk close the a platform's edge the game won't force
 you down as with the original. I found that unnecessary and it made things more
 complex on the technical side, so I skipped implementing this behavior.
 
+## Sound
+
+The sound is entirely different from the original, and it's the thing that will
+stand out the most to players used to the original "soundtrack". The ZX Spectrum
+was very limited in this department, with only a single-channel beeper, and so
+the only sound in the original are beeps making up the sound effects. These
+beeps are charming and all, but they are next to impossible to reproduce on the
+NES/Famicom.
+
+All in all, this port stays in the same beeper department, but via the more
+advanced channels from the NES/Famicom. Long story short: all sounds are just
+different on this port. Having said that, there are a couple of considerations
+to be made.
+
+First of all, the take off animation is done via noise channel from the
+NES/Famicom, which is close enough to the original sound. But this noise channel
+is also used for enemy/player explosions, which will sound entirely different to
+the beeping from the original. All in all, I thought it was funny to have it
+this way, which sounds more aggressive and it's charming in its own distinct
+way.
+
+Moreover, in the original the CPU had to slot some time to produce the beeping,
+which made the game to lag in some situations. This doesn't happen on the
+NES/Famicom, simply because we don't have to waste CPU cycles to produce
+sound. When it comes to bullets, this lag made the beeping on the original
+unreliable. But if we delivered a sound effect for each bullet on the
+NES/Famicom, it would simply be overwhelming to the player, as they would get a
+fast stream of beeps. Because of this, I'm only delivering sound at a maximum
+capped frame rate. This will make the randomness of beeping from the original
+less random on this port.
+
+Last but not least, and realizing that this shooting game isn't that far off
+from games like Gradius when it comes to being a bullet smasher, the sound
+effect for each bullet is closer to those kinds of games in contrast to the
+original. In the end: different machine, different sound effects.
+
 ## Shooting
 
 Shooting is something that is completely different to the original, as the
