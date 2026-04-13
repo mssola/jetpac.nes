@@ -20,6 +20,10 @@ the controls are as follows:
 | <kbd>Arrow Down</kbd>                          | Hover                  |
 | <kbd>B</kbd>                                   | Shoot                  |
 
+Here it is a short recording of gameplay:
+
+![recording.gif](./assets/recording.gif)
+
 # Changes from the original
 
 This port does not attempt to be a pristine replica of the original game. This
