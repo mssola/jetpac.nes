@@ -22,10 +22,10 @@ the controls are as follows:
 
 # Changes from the original
 
-This port does not even attempt to be an exact replica of the original
-game. This is in line to what most ports felt during those times. That is, for a
-given game that was ported to multiple systems, you could always tell
-differences, and not just aesthetic ones.
+This port does not attempt to be a pristine replica of the original game. This
+is in line to what most ports felt during those times. That is, for a given game
+that was ported to multiple systems, you could always tell differences, and not
+just aesthetic ones.
 
 Being more specific, this port follows the original version with some
 adjustments in order to make it a reality on the NES/Famicom, but I have not
@@ -58,7 +58,7 @@ The colors from bullets are also quite hard to pin down from the
 original. Hence, I've done something that looks colorful and which is within the
 palettes for this game. Couple this with what I mention below on shooting, and
 you will quickly realize that shooting is a different experience than the
-original version. Hopefully this is not too distracting to players which were
+original version. Hopefully this is not too distracting for players which were
 used to the original aesthetics.
 
 Finally, whenever the player fills the shuttle with fuel tanks, the original
@@ -88,7 +88,7 @@ The sound is entirely different from the original, and it's the thing that will
 stand out the most to players used to the original "soundtrack". The ZX Spectrum
 was very limited in this department, with only a single-channel beeper, and so
 the only sound in the original are beeps making up the sound effects. These
-beeps are charming and all, but they are next to impossible to reproduce on the
+beeps are charming and all, but they are next to impossible to replicate on the
 NES/Famicom.
 
 All in all, this port stays in the same beeper department, but via the more
@@ -96,7 +96,7 @@ advanced channels from the NES/Famicom. Long story short: all sounds are just
 different on this port. Having said that, there are a couple of considerations
 to be made.
 
-First of all, the take off animation is done via noise channel from the
+First of all, the take off animation is done via the noise channel from the
 NES/Famicom, which is close enough to the original sound. But this noise channel
 is also used for enemy/player explosions, which will sound entirely different to
 the beeping from the original. All in all, I thought it was funny to have it
@@ -105,13 +105,13 @@ way.
 
 Moreover, in the original the CPU had to slot some time to produce the beeping,
 which made the game to lag in some situations. This doesn't happen on the
-NES/Famicom, simply because we don't have to waste CPU cycles to produce
-sound. When it comes to bullets, this lag made the beeping on the original
-unreliable. But if we delivered a sound effect for each bullet on the
-NES/Famicom, it would simply be overwhelming to the player, as they would get a
-fast stream of beeps. Because of this, I'm only delivering sound at a maximum
-capped frame rate. This will make the randomness of beeping from the original
-less random on this port.
+NES/Famicom, simply because we don't have to waste (too many) CPU cycles to
+produce sound. When it comes to bullets, this lag made the beeping on the
+original unreliable. But if we delivered a sound effect for each bullet on the
+NES/Famicom, it would simply overwhelm the player, as they would get a fast
+stream of beeps. Because of this, I'm only delivering sound at a maximum capped
+frame rate for bullets. This will make the randomness of beeping from the
+original "less random" on this port.
 
 Last but not least, and realizing that this shooting game isn't that far off
 from games like Gradius when it comes to being a bullet smasher, the sound
