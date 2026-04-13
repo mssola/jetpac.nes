@@ -48,11 +48,11 @@ all: clean deps build
 
 .PHONY: clean
 clean:
-	@rm -rf out
-	@find . -type f -name "*.o" -delete
-	@find . -type f -name "*.nes" -delete
-	@rm -rf .nasm/
-	@mkdir -p out/
+	$(Q) rm -rf out
+	$(Q) find . -type f -name "*.o" -delete
+	$(Q) find . -type f -name "*.nes" -delete
+	$(Q) rm -rf .nasm/
+	$(Q) mkdir -p out/
 
 .PHONY: deps
 deps:
@@ -67,7 +67,7 @@ ifeq ($(HAS_RUBY),true)
 	$(E) "	GEN	 config/values"
 	$(Q) ruby bin/values.rb
 else
-	@(Q) echo "WARNING: '$(RUBY)' not found; files under 'config/values/' will not be generated."
+	$(Q) echo "WARNING: '$(RUBY)' not found; files under 'config/values/' will not be generated."
 endif
 
 ##
