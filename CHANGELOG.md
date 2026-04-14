@@ -1,10 +1,10 @@
-# 1.0 (Under development)
+# 1.0
 
 Initial implementation of the full game.
 
 ## Statistics
 
-There have been 189 commits since March 12th 2025. As reported by
+There have been 190 commits since March 12th 2025. As reported by
 [nasm](https//github.com/mssola/tools.nes) on the NTSC version, the segments
 have been filled up like this:
 
